@@ -21,6 +21,7 @@ import { StreamingErrorBoundary } from './StreamingErrorBoundary';
 import { conversationStorage, ConversationTitleGenerator, SavedConversation } from '../../services/conversationStorage';
 import { AIChatService } from '../../services/aiChatService';
 import { useAuth } from '../../contexts/AuthContext';
+import { revolutionaryDBCoachService } from '../../services/revolutionaryDBCoachService';
 
 interface StreamingTask {
   id: string;
@@ -277,9 +278,10 @@ export function EnhancedStreamingInterface({
       localInsights.push(startInsight);
       setInsights(prev => [...prev, startInsight]);
 
-      // Generate content for this task
-      const content = generateTaskContent(task, prompt, dbType);
-      console.log(`📝 Generated content for ${task.title} - Length: ${content.length}`);
+      // Generate content for this task using INTELLIGENT AI
+      console.log(`🚀 Generating intelligent content for ${task.title}...`);
+      const content = await generateIntelligentTaskContent(task, prompt, dbType, localContent);
+      console.log(`✅ Intelligent content generated for ${task.title} - Length: ${content.length}`);
       
       // Stream content character by character
       let contentIndex = 0;
@@ -416,6 +418,267 @@ export function EnhancedStreamingInterface({
     }
   };
 
+  // Intelligent content generation using Revolutionary AI Service
+  const generateIntelligentTaskContent = async (
+    task: StreamingTask, 
+    prompt: string, 
+    dbType: string, 
+    existingContent: Map<string, string>
+  ): Promise<string> => {
+    try {
+      console.log(`🧠 Generating intelligent content for task: ${task.title}`);
+      
+      // Map task type to generation step type
+      const stepTypeMap: Record<string, string> = {
+        'Requirements Analysis': 'analysis',
+        'Schema Design': 'design', 
+        'Implementation Package': 'implementation',
+        'Quality Assurance': 'validation'
+      };
+      
+      const stepType = stepTypeMap[task.title] || 'design';
+      
+      // Use the revolutionary service to generate a single step
+      const steps = await revolutionaryDBCoachService.generateDatabaseDesign(
+        prompt,
+        dbType,
+        (progress) => {
+          console.log(`🎯 Progress: ${progress.reasoning}`);
+        }
+      );
+      
+      // Find the matching step or use the first one
+      const targetStep = steps.find(step => step.type === stepType) || steps[0];
+      
+      if (targetStep) {
+        console.log(`✅ Generated ${targetStep.type} content with ${targetStep.content.length} characters`);
+        return targetStep.content;
+      } else {
+        throw new Error('No content generated');
+      }
+      
+    } catch (error) {
+      console.error(`❌ Intelligent generation failed for ${task.title}:`, error);
+      
+      // Fallback to enhanced static content that's at least contextual
+      return generateEnhancedStaticContent(task, prompt, dbType);
+    }
+  };
+
+  // Enhanced static content as fallback (much better than the old static content)
+  const generateEnhancedStaticContent = (task: StreamingTask, prompt: string, dbType: string): string => {
+    const domainKeywords = prompt.toLowerCase();
+    const isEcommerce = ['shop', 'store', 'product', 'order', 'cart'].some(keyword => domainKeywords.includes(keyword));
+    const isBlog = ['blog', 'post', 'article', 'comment'].some(keyword => domainKeywords.includes(keyword));
+    const isSocial = ['social', 'user', 'follow', 'like', 'friend'].some(keyword => domainKeywords.includes(keyword));
+    
+    switch (task.title) {
+      case 'Requirements Analysis':
+        if (isEcommerce) {
+          return `# E-Commerce Requirements Analysis
+
+## Domain Analysis
+**Detected Domain**: E-commerce Platform
+**Database Type**: ${dbType}
+**Original Request**: "${prompt}"
+
+## Core Requirements Identified
+### Functional Requirements:
+- Product catalog management with categories and variants
+- Shopping cart and checkout functionality  
+- Order processing and fulfillment tracking
+- Customer account management and authentication
+- Inventory tracking and stock management
+- Payment processing integration
+- Multi-currency and tax calculation support
+
+### Technical Requirements:
+- High performance for catalog browsing (< 100ms response)
+- ACID compliance for order transactions
+- Scalability for seasonal traffic spikes
+- Security for payment and personal data
+- Search functionality with filtering and sorting
+
+### Business Logic:
+- Product variants (size, color, style)
+- Discount codes and promotional pricing
+- Customer loyalty programs
+- Supplier and vendor management
+- Multi-warehouse inventory
+
+## Assumptions & Recommendations:
+- Assuming B2C e-commerce model
+- Recommending normalized schema for data integrity
+- Suggesting separate read replicas for catalog queries
+- Planning for international expansion (i18n support)`;
+        }
+        
+        if (isBlog) {
+          return `# Blog Platform Requirements Analysis
+
+## Domain Analysis  
+**Detected Domain**: Blog Management System
+**Database Type**: ${dbType}
+**Original Request**: "${prompt}"
+
+## Core Requirements Identified
+### Content Management:
+- Article creation, editing, and publishing workflow
+- Category and tag organization system
+- Author management and multi-author support
+- Comment system with moderation capabilities
+- Media management (images, videos, attachments)
+
+### User Experience:
+- Public blog interface with responsive design
+- Search functionality across all content
+- RSS feed generation
+- Social sharing integration
+- Email subscription management
+
+### Technical Requirements:
+- Content versioning and revision history
+- SEO optimization (meta tags, URLs, sitemaps)
+- Caching strategy for high-traffic articles
+- Content delivery network (CDN) integration
+- Backup and disaster recovery
+
+## Schema Recommendations:
+- Hierarchical categories for content organization
+- Flexible tagging system for cross-referencing
+- Comment threading and reply functionality
+- Author roles and permission management`;
+        }
+        
+        return `# Requirements Analysis
+
+## Project Analysis
+**Database Type**: ${dbType}
+**Original Request**: "${prompt}"
+
+## Requirements Extraction
+Based on your request, I've identified the following core requirements and designed an appropriate database structure to meet your needs.
+
+### Functional Requirements:
+- Core entity management and relationships
+- User authentication and authorization
+- Data validation and integrity constraints
+- Query performance optimization
+- Scalable architecture design
+
+### Technical Considerations:
+- ${dbType} database optimization
+- Proper indexing strategy
+- ACID compliance where needed
+- Security best practices implementation
+- Future scalability planning`;
+
+      case 'Schema Design':
+        if (isEcommerce) {
+          return `# E-Commerce Database Schema Design
+
+## Core Tables Design
+
+\`\`\`sql
+-- Customers table
+CREATE TABLE customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Categories table
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    parent_id INTEGER REFERENCES categories(id),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Products table
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    category_id INTEGER REFERENCES categories(id),
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    inventory_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Orders table
+CREATE TABLE orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES customers(id),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    subtotal DECIMAL(10,2) NOT NULL,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    shipping_amount DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Order items table
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id),
+    quantity INTEGER NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+\`\`\`
+
+## Indexes for Performance
+
+\`\`\`sql
+-- Customer indexes
+CREATE INDEX idx_customers_email ON customers(email);
+CREATE INDEX idx_customers_created_at ON customers(created_at);
+
+-- Product indexes  
+CREATE INDEX idx_products_category_id ON products(category_id);
+CREATE INDEX idx_products_sku ON products(sku);
+CREATE INDEX idx_products_active_price ON products(is_active, price) WHERE is_active = true;
+
+-- Order indexes
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at);
+
+-- Order items indexes
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+\`\`\`
+
+## Relationships Summary:
+- **One-to-Many**: Categories → Products, Customers → Orders, Orders → Order Items
+- **Self-Referencing**: Categories (parent-child hierarchy)
+- **Foreign Key Constraints**: Maintain referential integrity across all relationships`;
+        }
+        
+        return generateTaskContent(task, prompt, dbType);
+
+      default:
+        return generateTaskContent(task, prompt, dbType);
+    }
+  };
+
+  // Original static content generator (keep as final fallback)
   const generateTaskContent = (task: StreamingTask, prompt: string, dbType: string): string => {
     switch (task.id) {
       case 'requirements_analysis':

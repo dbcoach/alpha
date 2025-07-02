@@ -10,6 +10,8 @@ import {
   Download
 } from 'lucide-react';
 import { DatabaseProject, DatabaseSession } from '../../services/databaseProjectsService';
+import { unifiedIntelligentChatService } from '../../services/unifiedIntelligentChatService';
+import { SavedConversation } from '../../services/conversationStorage';
 
 interface ChatMessage {
   id: string;
@@ -81,20 +83,78 @@ Just describe what you'd like to work on!`,
     setIsLoading(true);
 
     try {
-      // Simulate AI response - in a real implementation, this would call your AI service
-      setTimeout(() => {
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: generateContextualResponse(userMessage.content, project),
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }, 1500);
+      console.log('🚀 Using Intelligent AI Chat Service for:', userMessage.content);
+      
+      // Create conversation object from project data
+      const conversation: SavedConversation = {
+        id: session.id,
+        prompt: project.description || `${project.database_type} database project`,
+        dbType: project.database_type,
+        title: project.database_name,
+        generatedContent: project.metadata?.generated_steps ? 
+          Object.fromEntries(
+            project.metadata.generated_steps.map((step: any, index: number) => [
+              step.type || `step_${index}`, 
+              step.content || step.title || ''
+            ])
+          ) : {},
+        insights: project.metadata?.reasoning_messages || [],
+        tasks: project.metadata?.generated_steps ? 
+          project.metadata.generated_steps.map((step: any, index: number) => ({
+            id: `task_${index}`,
+            title: step.title || `Task ${index + 1}`,
+            agent: step.agent || 'AI Agent',
+            status: 'completed' as const,
+            progress: 100
+          })) : [],
+        createdAt: project.created_at,
+        updatedAt: project.updated_at || project.created_at,
+        status: 'completed'
+      };
+
+      // Use the intelligent AI service
+      const response = await unifiedIntelligentChatService.processUserQuestion(
+        conversation,
+        userMessage.content
+      );
+
+      console.log('✅ Intelligent response received:', {
+        intent: response.intent,
+        confidence: response.confidence,
+        hasTaskExecution: !!response.taskExecution,
+        processingTime: response.metadata.processingTime
+      });
+
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: response.content,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      setIsLoading(false);
+
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Intelligent AI service failed:', error);
+      
+      // Fallback to basic response
+      const fallbackMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: `I apologize, but I encountered an error processing your request. This might be due to API configuration. 
+
+However, I can help you with:
+• Database schema design and modifications
+• SQL query generation and optimization  
+• Performance analysis and recommendations
+• Database best practices and guidance
+
+Please try rephrasing your question, or check that your VITE_GEMINI_API_KEY is properly configured.`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, fallbackMessage]);
       setIsLoading(false);
     }
   };
