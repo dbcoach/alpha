@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { GenerationStep, GenerationProgress, geminiService } from '../services/geminiService';
 import { GenerationStep as DBCoachStep, GenerationProgress as DBCoachProgress, enhancedDBCoachService } from '../services/enhancedDBCoachService';
+import { revolutionaryDBCoachService, RevolutionaryGenerationStep, RevolutionaryGenerationProgress } from '../services/revolutionaryDBCoachService';
+import { revolutionaryIntegrationService } from '../services/revolutionaryIntegration';
 import { databaseProjectsService } from '../services/databaseProjectsService';
 import { supabase } from '../lib/supabase';
 
