@@ -298,7 +298,18 @@ export function EnhancedStreamingInterface({
       const content = await generateIntelligentTaskContent(task, prompt, dbType, localContent);
       console.log(`✅ Intelligent content generated for ${task.title} - Length: ${content.length}`);
       
-      // Stream content character by character
+      // Immediately extract and store clean output
+      const cleanContent = extractCleanOutput(content);
+      console.log(`🧹 Clean content extracted for ${task.title} - Length: ${cleanContent.length}`);
+      
+      // Store clean output immediately for the middle panel
+      setCleanOutput(prev => {
+        const newMap = new Map(prev);
+        newMap.set(task.id, cleanContent);
+        return newMap;
+      });
+      
+      // Stream content character by character (for raw content if needed)
       let contentIndex = 0;
       const streamContent = async () => {
         if (contentIndex < content.length && isPlaying) {
@@ -306,7 +317,7 @@ export function EnhancedStreamingInterface({
           const newChars = content.substring(contentIndex, contentIndex + charsToAdd);
           contentIndex += charsToAdd;
 
-          // Update both local and state content
+          // Update both local and state content (raw content for insights)
           const currentContent = localContent.get(task.id) || '';
           const updatedContent = currentContent + newChars;
           localContent.set(task.id, updatedContent);
@@ -325,14 +336,7 @@ export function EnhancedStreamingInterface({
           if (contentIndex < content.length) {
             setTimeout(streamContent, 1000 / 60); // 60 FPS
           } else {
-            // Task completed - store clean output for middle panel
-            const cleanContent = extractCleanOutput(content);
-            setCleanOutput(prev => {
-              const newMap = new Map(prev);
-              newMap.set(task.id, cleanContent);
-              return newMap;
-            });
-            
+            // Task completed
             task.status = 'completed';
             task.progress = 100;
             setTasks([...localTasks]);
@@ -570,30 +574,53 @@ export function EnhancedStreamingInterface({
 
   // Extract clean output by removing reasoning and meta content
   const extractCleanOutput = (content: string): string => {
-    // Remove common reasoning patterns from AI output
+    if (!content || content.length === 0) {
+      console.warn('⚠️ extractCleanOutput: Empty content provided');
+      return content;
+    }
+
+    console.log('🧹 Extracting clean output from content length:', content.length);
+    
+    // If content is very short, return as-is (might be fallback content)
+    if (content.length < 100) {
+      return content;
+    }
+    
+    // Remove reasoning patterns but preserve the core database content
     let cleanContent = content
-      // Remove meta analysis sections
-      .replace(/## 🎯 Context-Aware Requirements Analysis[\s\S]*?## /g, '## ')
-      .replace(/\*\*Domain\*\*:.*?\n/g, '')
-      .replace(/\*\*Scale\*\*:.*?\n/g, '')
-      .replace(/\*\*Complexity\*\*:.*?\n/g, '')
-      .replace(/\*\*Confidence Score\*\*:.*?\n/g, '')
-      // Remove thinking process sections
-      .replace(/### 📋 Intelligent Requirements Understanding[\s\S]*?### /g, '### ')
-      .replace(/\*\*Explicit requirements\*\*:.*?\n/g, '')
-      .replace(/\*\*Implicit requirements\*\*:.*?\n/g, '')
-      .replace(/\*\*Context Analysis\*\*:.*?\n/g, '')
-      // Keep only the core content (schema, implementation, etc.)
-      .replace(/^#+ 🗄️ Revolutionary Database Design.*?\n/gm, '# Database Design\n')
-      .replace(/^#+ ⚡ Context-Optimized Schema/gm, '## Database Schema')
-      .replace(/^#+ 🚀 Revolutionary Performance & Security/gm, '## Performance & Security')
-      .replace(/^#+ 📊 Intelligent Sample Queries/gm, '## Sample Queries')
-      .replace(/^#+ 🛡️ Revolutionary Safety & Rollback Plans/gm, '## Safety & Rollback')
-      // Clean up excessive emojis and marketing language
-      .replace(/Revolutionary|Context-Aware|Intelligent/g, '')
-      .replace(/🗄️|⚡|🚀|📊|🛡️|🎯|📋/g, '')
-      .replace(/\s+/g, ' ')
+      // Remove meta analysis headers but keep the content
+      .replace(/^#{1,3}\s*🎯.*?Requirements Analysis.*?\n/gmi, '')
+      .replace(/^\*\*Domain\*\*:.*?\n/gm, '')
+      .replace(/^\*\*Scale\*\*:.*?\n/gm, '')
+      .replace(/^\*\*Complexity\*\*:.*?\n/gm, '')
+      .replace(/^\*\*Confidence Score\*\*:.*?\n/gm, '')
+      // Remove thinking process headers
+      .replace(/^#{1,3}\s*📋.*?Understanding.*?\n/gmi, '')
+      .replace(/^\*\*Explicit requirements\*\*:.*?\n/gm, '')
+      .replace(/^\*\*Implicit requirements\*\*:.*?\n/gm, '')
+      .replace(/^\*\*Context Analysis\*\*:.*?\n/gm, '')
+      // Clean up revolutionary language but keep structure
+      .replace(/🗄️\s*Revolutionary Database Design/g, 'Database Design')
+      .replace(/⚡\s*Context-Optimized Schema/g, 'Database Schema')
+      .replace(/🚀\s*Revolutionary Performance & Security/g, 'Performance & Security')
+      .replace(/📊\s*Intelligent Sample Queries/g, 'Sample Queries')
+      .replace(/🛡️\s*Revolutionary Safety & Rollback Plans/g, 'Safety & Rollback')
+      // Remove excessive marketing language but preserve technical content
+      .replace(/Revolutionary\s+/g, '')
+      .replace(/Context-Aware\s+/g, '')
+      .replace(/Intelligent\s+/g, '')
+      // Clean up extra spaces but preserve line breaks
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
+    
+    console.log('✅ Clean content extracted, length:', cleanContent.length);
+    
+    // If cleaning removed everything, return original content
+    if (cleanContent.length < 50 && content.length > 100) {
+      console.warn('⚠️ Over-cleaning detected, returning original content');
+      return content;
+    }
     
     return cleanContent;
   };
@@ -609,7 +636,12 @@ export function EnhancedStreamingInterface({
 
   // Parse and render database content visually
   const renderDatabaseContent = (content: string, taskTitle: string) => {
-    if (!content) return null;
+    if (!content) {
+      console.warn('⚠️ renderDatabaseContent: No content to render for', taskTitle);
+      return null;
+    }
+
+    console.log('🎨 Rendering database content for', taskTitle, 'length:', content.length);
 
     // Extract SQL blocks
     const sqlBlocks = content.match(/```sql\n?([\s\S]*?)```/gi) || [];
@@ -617,6 +649,36 @@ export function EnhancedStreamingInterface({
     
     // Extract sections
     const sections = content.split(/#{2,3}\s+(.+)/g).filter(Boolean);
+    
+    console.log('📊 Content analysis:', {
+      sqlBlocks: sqlBlocks.length,
+      tableCreations: tableCreations.length,
+      sections: sections.length
+    });
+
+    // If no structured content found, show the raw content in a nice format
+    if (sqlBlocks.length === 0 && tableCreations.length === 0 && sections.length < 2) {
+      return (
+        <div className="space-y-4">
+          {/* Task Header */}
+          <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-lg p-4 border border-slate-600/50">
+            <h4 className="text-white font-semibold text-lg mb-2 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center">
+                <Database className="w-4 h-4 text-white" />
+              </div>
+              {taskTitle}
+            </h4>
+          </div>
+
+          {/* Raw Content Display */}
+          <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-600/50">
+            <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {content}
+            </div>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className="space-y-6">
