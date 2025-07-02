@@ -1,4 +1,4 @@
-# 🎯 DB.Coach - AI-Powered Database Design Studio
+# 🎯 DB.Coach (Alpha) - AI-Powered Database Design Studio
 
 <div align="center">
 
