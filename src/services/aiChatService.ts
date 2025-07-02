@@ -1,4 +1,5 @@
 import { SavedConversation } from './conversationStorage';
+import { unifiedIntelligentChatService, UnifiedChatResponse } from './unifiedIntelligentChatService';
 
 export interface ChatResponse {
   content: string;
@@ -9,8 +10,43 @@ export interface ChatResponse {
 export class AIChatService {
   /**
    * Generates an AI response based on the conversation context and user question
+   * NOW POWERED BY INTELLIGENT AI AGENTS!
    */
   static async generateResponse(conversation: SavedConversation, userQuestion: string): Promise<ChatResponse> {
+    try {
+      console.log('🚀 Using NEW Intelligent AI Chat Service!');
+      
+      // Use the new unified intelligent service
+      const intelligentResponse: UnifiedChatResponse = await unifiedIntelligentChatService.processUserQuestion(
+        conversation,
+        userQuestion
+      );
+
+      console.log('✅ Intelligent AI Response Generated:', {
+        intent: intelligentResponse.intent,
+        confidence: intelligentResponse.confidence,
+        hasTaskExecution: !!intelligentResponse.taskExecution,
+        processingTime: intelligentResponse.metadata.processingTime
+      });
+
+      // Return in the expected format for backward compatibility
+      return {
+        content: intelligentResponse.content,
+        type: intelligentResponse.type,
+        confidence: intelligentResponse.confidence
+      };
+
+    } catch (error) {
+      console.error('❌ Intelligent AI service failed, falling back to legacy:', error);
+      // Fallback to legacy implementation
+      return this.legacyGenerateResponse(conversation, userQuestion);
+    }
+  }
+
+  /**
+   * Legacy implementation as fallback
+   */
+  private static async legacyGenerateResponse(conversation: SavedConversation, userQuestion: string): Promise<ChatResponse> {
     try {
       console.log('🧠 AIChatService processing question:', userQuestion);
       console.log('📊 Available content keys:', Object.keys(conversation.generatedContent));
