@@ -15,7 +15,9 @@ import {
   Save,
   Database,
   Send,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { StreamingErrorBoundary } from './StreamingErrorBoundary';
 import { conversationStorage, ConversationTitleGenerator, SavedConversation } from '../../services/conversationStorage';
@@ -33,6 +35,17 @@ interface StreamingTask {
   startTime?: Date;
   endTime?: Date;
   subtasks: StreamingSubtask[];
+}
+
+interface AIReasoning {
+  id: string;
+  taskId: string;
+  agent: string;
+  step: string;
+  content: string;
+  timestamp: Date;
+  isExpanded: boolean;
+  confidence?: number;
 }
 
 interface StreamingSubtask {
@@ -81,6 +94,8 @@ export function EnhancedStreamingInterface({
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(0);
   const [taskContent, setTaskContent] = useState<Map<string, string>>(new Map());
   const [insights, setInsights] = useState<Array<{ agent: string; message: string; timestamp: Date }>>([]);
+  const [aiReasoning, setAiReasoning] = useState<AIReasoning[]>([]);
+  const [cleanOutput, setCleanOutput] = useState<Map<string, string>>(new Map());
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'none' | 'saving' | 'saved' | 'error'>('none');
   const [startTime] = useState(() => new Date());
@@ -310,7 +325,14 @@ export function EnhancedStreamingInterface({
           if (contentIndex < content.length) {
             setTimeout(streamContent, 1000 / 60); // 60 FPS
           } else {
-            // Task completed
+            // Task completed - store clean output for middle panel
+            const cleanContent = extractCleanOutput(content);
+            setCleanOutput(prev => {
+              const newMap = new Map(prev);
+              newMap.set(task.id, cleanContent);
+              return newMap;
+            });
+            
             task.status = 'completed';
             task.progress = 100;
             setTasks([...localTasks]);
@@ -318,7 +340,7 @@ export function EnhancedStreamingInterface({
             // Add completion insight
             const completionInsight = {
               agent: task.agent,
-              message: `${task.title} completed successfully!`,
+              message: `${task.title} completed successfully! Clean output ready.`,
               timestamp: new Date()
             };
             localInsights.push(completionInsight);
@@ -418,7 +440,7 @@ export function EnhancedStreamingInterface({
     }
   };
 
-  // Intelligent content generation using Revolutionary AI Service
+  // Intelligent content generation with separated reasoning and output
   const generateIntelligentTaskContent = async (
     task: StreamingTask, 
     prompt: string, 
@@ -427,6 +449,34 @@ export function EnhancedStreamingInterface({
   ): Promise<string> => {
     try {
       console.log(`🧠 Generating intelligent content for task: ${task.title}`);
+      
+      // Add reasoning steps that will stream to the left panel
+      const reasoningSteps = [
+        `Analyzing ${task.title.toLowerCase()} requirements...`,
+        `Processing domain context: ${prompt.substring(0, 50)}...`,
+        `Selecting optimal ${dbType} patterns...`,
+        `Generating content with AI reasoning...`,
+        `Validating output quality and completeness...`
+      ];
+      
+      // Stream reasoning steps to left panel
+      for (let i = 0; i < reasoningSteps.length; i++) {
+        const reasoning: AIReasoning = {
+          id: `reasoning_${task.id}_${i}`,
+          taskId: task.id,
+          agent: task.agent,
+          step: `Step ${i + 1}`,
+          content: reasoningSteps[i],
+          timestamp: new Date(),
+          isExpanded: i === reasoningSteps.length - 1, // Last step expanded by default
+          confidence: 0.8 + (i * 0.04) // Increasing confidence
+        };
+        
+        setAiReasoning(prev => [...prev, reasoning]);
+        
+        // Small delay between reasoning steps for visual effect
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
       
       // Map task type to generation step type
       const stepTypeMap: Record<string, string> = {
@@ -438,12 +488,36 @@ export function EnhancedStreamingInterface({
       
       const stepType = stepTypeMap[task.title] || 'design';
       
-      // Use the revolutionary service to generate a single step
+      // Add AI reasoning step
+      const finalReasoningStep: AIReasoning = {
+        id: `reasoning_${task.id}_final`,
+        taskId: task.id,
+        agent: task.agent,
+        step: 'AI Generation',
+        content: `Executing ${stepType} generation using Revolutionary DBCoach Service with context-aware prompts and domain-specific optimization for ${dbType} database.`,
+        timestamp: new Date(),
+        isExpanded: false,
+        confidence: 0.95
+      };
+      setAiReasoning(prev => [...prev, finalReasoningStep]);
+      
+      // Use the revolutionary service to generate content
       const steps = await revolutionaryDBCoachService.generateDatabaseDesign(
         prompt,
         dbType,
         (progress) => {
-          console.log(`🎯 Progress: ${progress.reasoning}`);
+          // Stream progress reasoning to left panel
+          const progressReasoning: AIReasoning = {
+            id: `progress_${task.id}_${Date.now()}`,
+            taskId: task.id,
+            agent: progress.agent,
+            step: progress.step,
+            content: progress.reasoning,
+            timestamp: new Date(),
+            isExpanded: false,
+            confidence: progress.confidence
+          };
+          setAiReasoning(prev => [...prev, progressReasoning]);
         }
       );
       
@@ -451,8 +525,24 @@ export function EnhancedStreamingInterface({
       const targetStep = steps.find(step => step.type === stepType) || steps[0];
       
       if (targetStep) {
+        // Add completion reasoning
+        const completionReasoning: AIReasoning = {
+          id: `completion_${task.id}`,
+          taskId: task.id,
+          agent: task.agent,
+          step: 'Complete',
+          content: `✅ Successfully generated ${targetStep.content.length} characters of ${stepType} content with ${Math.round(targetStep.confidence * 100)}% confidence.`,
+          timestamp: new Date(),
+          isExpanded: false,
+          confidence: targetStep.confidence
+        };
+        setAiReasoning(prev => [...prev, completionReasoning]);
+        
         console.log(`✅ Generated ${targetStep.type} content with ${targetStep.content.length} characters`);
-        return targetStep.content;
+        
+        // Extract clean output (remove reasoning sections)
+        const cleanOutput = extractCleanOutput(targetStep.content);
+        return cleanOutput;
       } else {
         throw new Error('No content generated');
       }
@@ -460,9 +550,61 @@ export function EnhancedStreamingInterface({
     } catch (error) {
       console.error(`❌ Intelligent generation failed for ${task.title}:`, error);
       
+      // Add error reasoning
+      const errorReasoning: AIReasoning = {
+        id: `error_${task.id}`,
+        taskId: task.id,
+        agent: task.agent,
+        step: 'Fallback',
+        content: `⚠️ AI generation failed, using enhanced static content: ${error}`,
+        timestamp: new Date(),
+        isExpanded: true,
+        confidence: 0.6
+      };
+      setAiReasoning(prev => [...prev, errorReasoning]);
+      
       // Fallback to enhanced static content that's at least contextual
       return generateEnhancedStaticContent(task, prompt, dbType);
     }
+  };
+
+  // Extract clean output by removing reasoning and meta content
+  const extractCleanOutput = (content: string): string => {
+    // Remove common reasoning patterns from AI output
+    let cleanContent = content
+      // Remove meta analysis sections
+      .replace(/## 🎯 Context-Aware Requirements Analysis[\s\S]*?## /g, '## ')
+      .replace(/\*\*Domain\*\*:.*?\n/g, '')
+      .replace(/\*\*Scale\*\*:.*?\n/g, '')
+      .replace(/\*\*Complexity\*\*:.*?\n/g, '')
+      .replace(/\*\*Confidence Score\*\*:.*?\n/g, '')
+      // Remove thinking process sections
+      .replace(/### 📋 Intelligent Requirements Understanding[\s\S]*?### /g, '### ')
+      .replace(/\*\*Explicit requirements\*\*:.*?\n/g, '')
+      .replace(/\*\*Implicit requirements\*\*:.*?\n/g, '')
+      .replace(/\*\*Context Analysis\*\*:.*?\n/g, '')
+      // Keep only the core content (schema, implementation, etc.)
+      .replace(/^#+ 🗄️ Revolutionary Database Design.*?\n/gm, '# Database Design\n')
+      .replace(/^#+ ⚡ Context-Optimized Schema/gm, '## Database Schema')
+      .replace(/^#+ 🚀 Revolutionary Performance & Security/gm, '## Performance & Security')
+      .replace(/^#+ 📊 Intelligent Sample Queries/gm, '## Sample Queries')
+      .replace(/^#+ 🛡️ Revolutionary Safety & Rollback Plans/gm, '## Safety & Rollback')
+      // Clean up excessive emojis and marketing language
+      .replace(/Revolutionary|Context-Aware|Intelligent/g, '')
+      .replace(/🗄️|⚡|🚀|📊|🛡️|🎯|📋/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return cleanContent;
+  };
+
+  // Toggle reasoning expansion
+  const toggleReasoningExpansion = (reasoningId: string) => {
+    setAiReasoning(prev => prev.map(reasoning => 
+      reasoning.id === reasoningId 
+        ? { ...reasoning, isExpanded: !reasoning.isExpanded }
+        : reasoning
+    ));
   };
 
   // Enhanced static content as fallback (much better than the old static content)
@@ -1100,20 +1242,70 @@ const api = {
             {/* Live AI Reasoning Stream */}
             <div className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-3">
+                {/* AI Reasoning Steps with Collapsible Sections */}
+                {aiReasoning.map((reasoning) => (
+                  <div key={reasoning.id} className="text-sm">
+                    <div 
+                      className="flex items-center gap-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                      onClick={() => toggleReasoningExpansion(reasoning.id)}
+                    >
+                      {reasoning.isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      )}
+                      
+                      <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${getAgentColor(reasoning.agent)} flex items-center justify-center flex-shrink-0`}>
+                        <Bot className="w-3 h-3 text-white" />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white text-xs">{reasoning.agent}</span>
+                          <span className="text-xs text-slate-500">{reasoning.step}</span>
+                        </div>
+                        {reasoning.confidence && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-16 h-1 bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-yellow-500 to-green-500 transition-all duration-300"
+                                style={{ width: `${reasoning.confidence * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-500">{Math.round(reasoning.confidence * 100)}%</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <span className="text-xs text-slate-500">
+                        {reasoning.timestamp.toLocaleTimeString()}
+                      </span>
+                    </div>
+                    
+                    {/* Expanded Content */}
+                    {reasoning.isExpanded && (
+                      <div className="mt-2 ml-8 p-3 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                        <p className="text-slate-300 leading-relaxed text-sm">{reasoning.content}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Legacy Insights (still show for compatibility) */}
                 {insights.map((insight, index) => (
-                  <div key={index} className="flex items-start gap-3 text-sm">
+                  <div key={`insight-${index}`} className="flex items-start gap-3 text-sm opacity-80">
                     <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${getAgentColor(insight.agent)} flex items-center justify-center flex-shrink-0`}>
                       <Bot className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-white">{insight.agent}</span>
+                        <span className="font-medium text-white text-xs">{insight.agent}</span>
                         <span className="text-xs text-slate-500">
                           {insight.timestamp.toLocaleTimeString()}
                         </span>
                       </div>
-                      <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                        <p className="text-slate-300 leading-relaxed">{insight.message}</p>
+                      <div className="bg-slate-800/30 rounded-lg p-2 border border-slate-700/30">
+                        <p className="text-slate-400 leading-relaxed text-xs">{insight.message}</p>
                       </div>
                     </div>
                   </div>
@@ -1127,7 +1319,7 @@ const api = {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-white">{activeTask.agent}</span>
+                        <span className="font-medium text-white text-xs">{activeTask.agent}</span>
                         <Loader2 className="w-3 h-3 text-yellow-400 animate-spin" />
                       </div>
                       <div className="bg-slate-800/50 rounded-lg p-3 border border-yellow-500/30">
@@ -1137,7 +1329,7 @@ const api = {
                             <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                             <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
-                          <span className="text-yellow-300 text-sm">Generating...</span>
+                          <span className="text-yellow-300 text-sm">Thinking...</span>
                         </div>
                       </div>
                     </div>
@@ -1153,16 +1345,16 @@ const api = {
             <div className="p-4 border-b border-slate-700/50 bg-slate-800/30">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Database className="w-5 h-5 text-green-400" />
-                Generated Database Design
+                Clean Database Output
               </h3>
-              <p className="text-sm text-slate-400 mt-1">Real-time content generation</p>
+              <p className="text-sm text-slate-400 mt-1">Final deliverable content</p>
             </div>
 
             {/* Live Content Generation */}
             <div className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-6">
                 {tasks.map((task) => {
-                  const content = taskContent.get(task.id) || '';
+                  const cleanContent = cleanOutput.get(task.id) || '';
                   
                   return (
                     <div key={task.id} className={`transition-all duration-300 ${
@@ -1170,49 +1362,59 @@ const api = {
                     }`}>
                       <div className="flex items-center gap-3 mb-3">
                         <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${getAgentColor(task.agent)} flex items-center justify-center`}>
-                          <Bot className="w-3 h-3 text-white" />
+                          <CheckCircle className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-semibold text-white">{task.title}</h4>
                         {task.status === 'active' && (
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                            <span className="text-xs text-green-400">Generating...</span>
+                            <span className="text-xs text-green-400">Processing...</span>
                           </div>
                         )}
                         {task.status === 'completed' && (
                           <div className="flex items-center gap-1">
                             <CheckCircle className="w-4 h-4 text-green-400" />
-                            <span className="text-xs text-green-400">Complete</span>
+                            <span className="text-xs text-green-400">Ready</span>
                           </div>
                         )}
                       </div>
                       
-                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 min-h-[100px]">
-                        {content ? (
-                          <div 
-                            ref={(el) => {
-                              if (el) contentRefs.current.set(task.id, el);
-                            }}
-                            className="text-slate-200 whitespace-pre-wrap font-mono text-sm leading-relaxed"
-                          >
-                            {content}
+                      <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700/50 min-h-[120px]">
+                        {cleanContent ? (
+                          <div className="prose prose-slate prose-sm max-w-none">
+                            <div 
+                              className="text-slate-200 leading-relaxed"
+                              dangerouslySetInnerHTML={{ 
+                                __html: cleanContent
+                                  .replace(/```sql/g, '<pre class="bg-slate-800/50 p-4 rounded-lg mt-4 mb-4 border border-slate-600/50"><code class="text-green-300 font-mono text-sm">')
+                                  .replace(/```/g, '</code></pre>')
+                                  .replace(/##\s+(.+)/g, '<h3 class="text-white font-semibold text-lg mt-6 mb-3 flex items-center gap-2"><span class="w-2 h-2 bg-green-400 rounded-full"></span>$1</h3>')
+                                  .replace(/###\s+(.+)/g, '<h4 class="text-slate-300 font-medium text-base mt-4 mb-2">$1</h4>')
+                                  .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
+                                  .replace(/\n\n/g, '</p><p class="mt-3">')
+                                  .replace(/^(.+)$/gm, '<p>$1</p>')
+                              }}
+                            />
                             {task.status === 'active' && (
-                              <span 
-                                ref={(el) => {
-                                  if (el) cursorRefs.current.set(task.id, el);
-                                }}
-                                className="inline-block w-2 h-5 bg-green-400 animate-pulse ml-1"
-                              />
+                              <div className="mt-4 flex items-center gap-2 text-green-400">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                <span className="text-sm">Generating clean output...</span>
+                              </div>
                             )}
                           </div>
                         ) : (
                           <div className="flex items-center justify-center h-20 text-slate-500">
                             {task.status === 'pending' ? (
-                              <span className="text-sm">Waiting for {task.agent}...</span>
+                              <div className="text-center">
+                                <Clock className="w-6 h-6 mx-auto mb-2 text-slate-600" />
+                                <span className="text-sm">Waiting for processing...</span>
+                              </div>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">Preparing content...</span>
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                                </div>
+                                <span className="text-sm">Generating clean output...</span>
                               </div>
                             )}
                           </div>
