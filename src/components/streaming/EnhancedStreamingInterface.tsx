@@ -607,6 +607,149 @@ export function EnhancedStreamingInterface({
     ));
   };
 
+  // Parse and render database content visually
+  const renderDatabaseContent = (content: string, taskTitle: string) => {
+    if (!content) return null;
+
+    // Extract SQL blocks
+    const sqlBlocks = content.match(/```sql\n?([\s\S]*?)```/gi) || [];
+    const tableCreations = content.match(/CREATE TABLE\s+(\w+)\s*\(([\s\S]*?)\);/gi) || [];
+    
+    // Extract sections
+    const sections = content.split(/#{2,3}\s+(.+)/g).filter(Boolean);
+    
+    return (
+      <div className="space-y-6">
+        {/* Task Header */}
+        <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-lg p-4 border border-slate-600/50">
+          <h4 className="text-white font-semibold text-lg mb-2 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center">
+              <Database className="w-4 h-4 text-white" />
+            </div>
+            {taskTitle}
+          </h4>
+        </div>
+
+        {/* SQL Tables Visualization */}
+        {tableCreations.length > 0 && (
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600/50">
+            <h5 className="text-white font-medium mb-4 flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-400 rounded"></div>
+              Database Tables ({tableCreations.length})
+            </h5>
+            <div className="grid gap-4">
+              {tableCreations.map((tableSQL, index) => {
+                const tableName = tableSQL.match(/CREATE TABLE\s+(\w+)/i)?.[1] || `table_${index}`;
+                const columns = tableSQL.match(/\(\s*([\s\S]*?)\s*\)/)?.[1]
+                  ?.split(',')
+                  .map(col => col.trim())
+                  .filter(col => col && !col.toLowerCase().includes('constraint'))
+                  .slice(0, 6) || [];
+
+                return (
+                  <div key={index} className="bg-slate-800/50 rounded-lg border border-slate-600/30 overflow-hidden">
+                    {/* Table Header */}
+                    <div className="bg-gradient-to-r from-blue-600/20 to-green-600/20 px-4 py-3 border-b border-slate-600/30">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">T</span>
+                        </div>
+                        <span className="text-white font-medium">{tableName}</span>
+                        <span className="text-xs text-slate-400">({columns.length} columns)</span>
+                      </div>
+                    </div>
+                    
+                    {/* Columns */}
+                    <div className="p-3">
+                      <div className="grid gap-2">
+                        {columns.slice(0, 4).map((column, colIndex) => {
+                          const [name, type] = column.split(/\s+/);
+                          const isPrimary = column.toLowerCase().includes('primary key');
+                          const isForeign = column.toLowerCase().includes('references');
+                          
+                          return (
+                            <div key={colIndex} className="flex items-center gap-2 text-sm">
+                              <div className={`w-3 h-3 rounded ${
+                                isPrimary ? 'bg-yellow-400' : 
+                                isForeign ? 'bg-blue-400' : 'bg-slate-400'
+                              }`}></div>
+                              <span className="text-slate-200 font-mono">{name}</span>
+                              <span className="text-slate-400 text-xs">{type}</span>
+                              {isPrimary && <span className="text-yellow-400 text-xs">PK</span>}
+                              {isForeign && <span className="text-blue-400 text-xs">FK</span>}
+                            </div>
+                          );
+                        })}
+                        {columns.length > 4 && (
+                          <div className="text-xs text-slate-500">
+                            +{columns.length - 4} more columns...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* SQL Code Blocks */}
+        {sqlBlocks.length > 0 && (
+          <div className="space-y-4">
+            {sqlBlocks.map((block, index) => {
+              const cleanSQL = block.replace(/```sql\n?/gi, '').replace(/```/g, '').trim();
+              const sqlType = cleanSQL.toLowerCase().includes('create table') ? 'Schema' :
+                           cleanSQL.toLowerCase().includes('create index') ? 'Indexes' :
+                           cleanSQL.toLowerCase().includes('insert') ? 'Sample Data' : 'SQL Code';
+              
+              return (
+                <div key={index} className="bg-slate-900/70 rounded-lg border border-slate-600/50 overflow-hidden">
+                  <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-600/30 flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-400 rounded"></div>
+                    <span className="text-white font-medium text-sm">{sqlType}</span>
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-xs text-slate-400">{cleanSQL.split('\n').length} lines</span>
+                    </div>
+                  </div>
+                  <pre className="p-4 overflow-x-auto">
+                    <code className="text-green-300 font-mono text-sm leading-relaxed">
+                      {cleanSQL}
+                    </code>
+                  </pre>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Text Content */}
+        {sections.length > 0 && (
+          <div className="space-y-4">
+            {sections.map((section, index) => {
+              if (index % 2 === 0) return null; // Skip section headers
+              const header = sections[index - 1];
+              
+              return (
+                <div key={index} className="bg-slate-800/30 rounded-lg p-4 border border-slate-600/30">
+                  <h6 className="text-white font-medium mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    {header}
+                  </h6>
+                  <div className="text-slate-300 leading-relaxed text-sm">
+                    {section.split('\n').map((line, lineIndex) => (
+                      <p key={lineIndex} className="mb-2">{line}</p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Enhanced static content as fallback (much better than the old static content)
   const generateEnhancedStaticContent = (task: StreamingTask, prompt: string, dbType: string): string => {
     const domainKeywords = prompt.toLowerCase();
@@ -1345,9 +1488,9 @@ const api = {
             <div className="p-4 border-b border-slate-700/50 bg-slate-800/30">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Database className="w-5 h-5 text-green-400" />
-                Clean Database Output
+                Database Design Output
               </h3>
-              <p className="text-sm text-slate-400 mt-1">Final deliverable content</p>
+              <p className="text-sm text-slate-400 mt-1">Visual database components and implementation</p>
             </div>
 
             {/* Live Content Generation */}
@@ -1360,63 +1503,41 @@ const api = {
                     <div key={task.id} className={`transition-all duration-300 ${
                       task.status === 'pending' ? 'opacity-30' : 'opacity-100'
                     }`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${getAgentColor(task.agent)} flex items-center justify-center`}>
-                          <CheckCircle className="w-4 h-4 text-white" />
-                        </div>
-                        <h4 className="font-semibold text-white">{task.title}</h4>
-                        {task.status === 'active' && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                            <span className="text-xs text-green-400">Processing...</span>
-                          </div>
-                        )}
-                        {task.status === 'completed' && (
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4 text-green-400" />
-                            <span className="text-xs text-green-400">Ready</span>
-                          </div>
-                        )}
-                      </div>
                       
-                      <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700/50 min-h-[120px]">
+                      <div className="min-h-[120px]">
                         {cleanContent ? (
-                          <div className="prose prose-slate prose-sm max-w-none">
-                            <div 
-                              className="text-slate-200 leading-relaxed"
-                              dangerouslySetInnerHTML={{ 
-                                __html: cleanContent
-                                  .replace(/```sql/g, '<pre class="bg-slate-800/50 p-4 rounded-lg mt-4 mb-4 border border-slate-600/50"><code class="text-green-300 font-mono text-sm">')
-                                  .replace(/```/g, '</code></pre>')
-                                  .replace(/##\s+(.+)/g, '<h3 class="text-white font-semibold text-lg mt-6 mb-3 flex items-center gap-2"><span class="w-2 h-2 bg-green-400 rounded-full"></span>$1</h3>')
-                                  .replace(/###\s+(.+)/g, '<h4 class="text-slate-300 font-medium text-base mt-4 mb-2">$1</h4>')
-                                  .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-                                  .replace(/\n\n/g, '</p><p class="mt-3">')
-                                  .replace(/^(.+)$/gm, '<p>$1</p>')
-                              }}
-                            />
-                            {task.status === 'active' && (
-                              <div className="mt-4 flex items-center gap-2 text-green-400">
-                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                <span className="text-sm">Generating clean output...</span>
-                              </div>
-                            )}
-                          </div>
+                          renderDatabaseContent(cleanContent, task.title)
                         ) : (
-                          <div className="flex items-center justify-center h-20 text-slate-500">
-                            {task.status === 'pending' ? (
-                              <div className="text-center">
-                                <Clock className="w-6 h-6 mx-auto mb-2 text-slate-600" />
-                                <span className="text-sm">Waiting for processing...</span>
-                              </div>
-                            ) : (
-                              <div className="text-center">
-                                <div className="flex items-center justify-center gap-2 mb-2">
-                                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                          <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700/50 min-h-[120px]">
+                            <div className="flex items-center justify-center h-20 text-slate-500">
+                              {task.status === 'pending' ? (
+                                <div className="text-center">
+                                  <Clock className="w-8 h-8 mx-auto mb-3 text-slate-600" />
+                                  <span className="text-sm text-slate-400">Waiting for {task.agent}...</span>
+                                  <div className="text-xs text-slate-500 mt-1">Database design in queue</div>
                                 </div>
-                                <span className="text-sm">Generating clean output...</span>
-                              </div>
-                            )}
+                              ) : (
+                                <div className="text-center">
+                                  <div className="flex items-center justify-center gap-3 mb-3">
+                                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                                    <Database className="w-6 h-6 text-green-400 animate-pulse" />
+                                  </div>
+                                  <span className="text-sm text-slate-300">Generating database design...</span>
+                                  <div className="text-xs text-slate-500 mt-1">{task.title} in progress</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Progress indicator for active tasks */}
+                        {task.status === 'active' && cleanContent && (
+                          <div className="mt-4 bg-gradient-to-r from-blue-600/10 to-green-600/10 rounded-lg p-3 border border-blue-500/20">
+                            <div className="flex items-center gap-2 text-blue-400">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                              <span className="text-sm">Live database generation...</span>
+                              <div className="ml-auto text-xs text-slate-400">{Math.round(task.progress)}%</div>
+                            </div>
                           </div>
                         )}
                       </div>
