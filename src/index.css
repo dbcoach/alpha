@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles for elegant scrolling */
+@layer utilities {
+  .scrollbar-elegant {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.4) rgba(30, 41, 59, 0.3);
+    /* Ensure smooth scrolling behavior */
+    scroll-behavior: smooth;
+    /* Optimize for performance */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 4px;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.6);
+  }
+
+  .scrollbar-elegant::-webkit-scrollbar-corner {
+    background: rgba(30, 41, 59, 0.3);
+  }
+
+  /* Enhanced chat window container for fixed height */
+  .chat-container-fixed {
+    height: calc(100vh - 320px); /* Adjust based on header and input heights */
+    min-height: 400px;
+    max-height: 600px;
+  }
+
+  /* Smooth scroll positioning */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar when not needed but keep functionality */
+  .scrollbar-auto-hide {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+
+  .scrollbar-auto-hide:hover {
+    scrollbar-color: rgba(139, 92, 246, 0.4) rgba(30, 41, 59, 0.3);
+  }
+
+  .scrollbar-auto-hide::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-auto-hide::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-auto-hide::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+    transition: background 0.3s ease;
+  }
+
+  .scrollbar-auto-hide:hover::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+  }
+}
+
+/* Page Load Glow Animation for Search Input */
+@keyframes pageLoadGlow {
+  0% {
+    box-shadow: 
+      0 0 0 0 rgba(59, 130, 246, 0),
+      0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  25% {
+    box-shadow: 
+      0 0 20px 2px rgba(59, 130, 246, 0.3),
+      0 0 30px 4px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 25px 3px rgba(59, 130, 246, 0.4),
+      0 0 40px 6px rgba(139, 92, 246, 0.25);
+  }
+  75% {
+    box-shadow: 
+      0 0 20px 2px rgba(59, 130, 246, 0.3),
+      0 0 30px 4px rgba(139, 92, 246, 0.2);
+  }
+  100% {
+    box-shadow: 
+      0 0 0 0 rgba(59, 130, 246, 0),
+      0 0 0 0 rgba(139, 92, 246, 0);
+  }
+}
+
+/* Alternative traveling border glow animation */
+@keyframes travelingBorderGlow {
+  0% {
+    box-shadow: 
+      0 -2px 8px rgba(59, 130, 246, 0.6),
+      0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  25% {
+    box-shadow: 
+      2px 0 8px rgba(59, 130, 246, 0.6),
+      0 0 15px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 2px 8px rgba(59, 130, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4);
+  }
+  75% {
+    box-shadow: 
+      -2px 0 8px rgba(59, 130, 246, 0.6),
+      0 0 15px rgba(139, 92, 246, 0.3);
+  }
+  100% {
+    box-shadow: 
+      0 -2px 8px rgba(59, 130, 246, 0.6),
+      0 0 0 0 rgba(139, 92, 246, 0);
+  }
+}
+
+/* Classes to apply the animations */
+.page-load-glow {
+  animation: pageLoadGlow 1.5s ease-in-out 0.8s forwards;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+.traveling-border-glow {
+  animation: travelingBorderGlow 1.8s ease-in-out 0.5s forwards;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+/* Avatar upload specific styles */
+.avatar-upload-overlay {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.8));
+}
+
+/* File drag and drop styles */
+.file-drop-zone {
+  transition: all 0.2s ease;
+}
+
+.file-drop-zone:hover {
+  transform: translateY(-1px);
+}
+
+.file-drop-zone.drag-over {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
+}
+
+/* Loading spinner for avatar upload */
+@keyframes avatarUploadSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.avatar-upload-spinner {
+  animation: avatarUploadSpin 1s linear infinite;
+}
+
+/* Responsive avatar sizes */
+@media (max-width: 640px) {
+  .avatar-large {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .avatar-medium {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .avatar-small {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Focus styles for accessibility */
+.avatar-upload-button:focus {
+  outline: 2px solid rgba(139, 92, 246, 0.6);
+  outline-offset: 2px;
+}
+
+/* Error shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.error-shake {
+  animation: shake 0.5s ease-in-out;
+}
