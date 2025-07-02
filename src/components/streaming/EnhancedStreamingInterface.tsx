@@ -150,12 +150,47 @@ export function EnhancedStreamingInterface({
       subtasks: []
     })));
     
-    // Load existing content
+    // Load existing content and generate clean output for middle panel
     const contentMap = new Map<string, string>();
-    Object.entries(existingConversation.generatedContent).forEach(([taskId, content]) => {
-      contentMap.set(taskId, content);
+    const cleanOutputMap = new Map<string, string>();
+    
+    Object.entries(existingConversation.generatedContent || {}).forEach(([taskId, content]) => {
+      if (typeof content === 'string' && content.length > 0) {
+        contentMap.set(taskId, content);
+        
+        // Extract clean output for the middle panel
+        const cleanContent = extractCleanOutput(content);
+        
+        // If clean content is empty, use minimal content generation
+        if (!cleanContent || cleanContent.length < 20) {
+          const taskTitle = existingConversation.tasks?.find(t => t.id === taskId)?.title || taskId;
+          const minimalContent = generateMinimalContent({
+            id: taskId,
+            title: taskTitle,
+            agent: 'DB.Coach',
+            status: 'completed',
+            progress: 100,
+            estimatedTime: 0,
+            subtasks: []
+          }, existingConversation.prompt, existingConversation.dbType);
+          cleanOutputMap.set(taskId, minimalContent);
+          console.log(`📝 Generated minimal content for ${taskId} (original was too short)`);
+        } else {
+          cleanOutputMap.set(taskId, cleanContent);
+        }
+        
+        console.log(`📄 Loaded content for ${taskId}:`, {
+          originalLength: content.length,
+          cleanLength: cleanOutputMap.get(taskId)?.length || 0,
+          hasContent: (cleanOutputMap.get(taskId)?.length || 0) > 0
+        });
+      }
     });
+    
     setTaskContent(contentMap);
+    setCleanOutput(cleanOutputMap);
+    
+    console.log('✅ Clean output populated for middle panel:', cleanOutputMap.size, 'tasks');
     
     // Load existing insights
     setInsights(existingConversation.insights.map(insight => ({
@@ -731,137 +766,6 @@ export function EnhancedStreamingInterface({
             </div>
           )}
         </div>
-      </div>
-    );
-    
-    return (
-      <div className="space-y-6">
-        {/* Task Header */}
-        <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-lg p-4 border border-slate-600/50">
-          <h4 className="text-white font-semibold text-lg mb-2 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center">
-              <Database className="w-4 h-4 text-white" />
-            </div>
-            {taskTitle}
-          </h4>
-        </div>
-
-        {/* SQL Tables Visualization */}
-        {tableCreations.length > 0 && (
-          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-600/50">
-            <h5 className="text-white font-medium mb-4 flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-400 rounded"></div>
-              Database Tables ({tableCreations.length})
-            </h5>
-            <div className="grid gap-4">
-              {tableCreations.map((tableSQL, index) => {
-                const tableName = tableSQL.match(/CREATE TABLE\s+(\w+)/i)?.[1] || `table_${index}`;
-                const columns = tableSQL.match(/\(\s*([\s\S]*?)\s*\)/)?.[1]
-                  ?.split(',')
-                  .map(col => col.trim())
-                  .filter(col => col && !col.toLowerCase().includes('constraint'))
-                  .slice(0, 6) || [];
-
-                return (
-                  <div key={index} className="bg-slate-800/50 rounded-lg border border-slate-600/30 overflow-hidden">
-                    {/* Table Header */}
-                    <div className="bg-gradient-to-r from-blue-600/20 to-green-600/20 px-4 py-3 border-b border-slate-600/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">T</span>
-                        </div>
-                        <span className="text-white font-medium">{tableName}</span>
-                        <span className="text-xs text-slate-400">({columns.length} columns)</span>
-                      </div>
-                    </div>
-                    
-                    {/* Columns */}
-                    <div className="p-3">
-                      <div className="grid gap-2">
-                        {columns.slice(0, 4).map((column, colIndex) => {
-                          const [name, type] = column.split(/\s+/);
-                          const isPrimary = column.toLowerCase().includes('primary key');
-                          const isForeign = column.toLowerCase().includes('references');
-                          
-                          return (
-                            <div key={colIndex} className="flex items-center gap-2 text-sm">
-                              <div className={`w-3 h-3 rounded ${
-                                isPrimary ? 'bg-yellow-400' : 
-                                isForeign ? 'bg-blue-400' : 'bg-slate-400'
-                              }`}></div>
-                              <span className="text-slate-200 font-mono">{name}</span>
-                              <span className="text-slate-400 text-xs">{type}</span>
-                              {isPrimary && <span className="text-yellow-400 text-xs">PK</span>}
-                              {isForeign && <span className="text-blue-400 text-xs">FK</span>}
-                            </div>
-                          );
-                        })}
-                        {columns.length > 4 && (
-                          <div className="text-xs text-slate-500">
-                            +{columns.length - 4} more columns...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* SQL Code Blocks */}
-        {sqlBlocks.length > 0 && (
-          <div className="space-y-4">
-            {sqlBlocks.map((block, index) => {
-              const cleanSQL = block.replace(/```sql\n?/gi, '').replace(/```/g, '').trim();
-              const sqlType = cleanSQL.toLowerCase().includes('create table') ? 'Schema' :
-                           cleanSQL.toLowerCase().includes('create index') ? 'Indexes' :
-                           cleanSQL.toLowerCase().includes('insert') ? 'Sample Data' : 'SQL Code';
-              
-              return (
-                <div key={index} className="bg-slate-900/70 rounded-lg border border-slate-600/50 overflow-hidden">
-                  <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-600/30 flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-400 rounded"></div>
-                    <span className="text-white font-medium text-sm">{sqlType}</span>
-                    <div className="ml-auto flex items-center gap-2">
-                      <span className="text-xs text-slate-400">{cleanSQL.split('\n').length} lines</span>
-                    </div>
-                  </div>
-                  <pre className="p-4 overflow-x-auto">
-                    <code className="text-green-300 font-mono text-sm leading-relaxed">
-                      {cleanSQL}
-                    </code>
-                  </pre>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Text Content */}
-        {sections.length > 0 && (
-          <div className="space-y-4">
-            {sections.map((section, index) => {
-              if (index % 2 === 0) return null; // Skip section headers
-              const header = sections[index - 1];
-              
-              return (
-                <div key={index} className="bg-slate-800/30 rounded-lg p-4 border border-slate-600/30">
-                  <h6 className="text-white font-medium mb-3 flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
-                    {header}
-                  </h6>
-                  <div className="text-slate-300 leading-relaxed text-sm">
-                    {section.split('\n').map((line, lineIndex) => (
-                      <p key={lineIndex} className="mb-2">{line}</p>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   };
