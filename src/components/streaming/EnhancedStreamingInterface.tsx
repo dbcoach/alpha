@@ -90,7 +90,7 @@ export function EnhancedStreamingInterface({
   const [activeTask, setActiveTask] = useState<StreamingTask | null>(null);
   const [totalProgress, setTotalProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [streamingSpeed, setStreamingSpeed] = useState(40);
+  const [streamingSpeed, setStreamingSpeed] = useState(80); // Increased from 40 to 80 for faster streaming
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(0);
   const [taskContent, setTaskContent] = useState<Map<string, string>>(new Map());
   const [insights, setInsights] = useState<Array<{ agent: string; message: string; timestamp: Date }>>([]);
@@ -365,9 +365,9 @@ export function EnhancedStreamingInterface({
         // Clear any existing streaming state
         streamingStateRef.current = null;
         
-        // Continue to next task
+        // Continue to next task with reduced delay
         currentTaskIndex++;
-        const nextTaskTimeoutId = setTimeout(() => processNextTask(), 1000);
+        const nextTaskTimeoutId = setTimeout(() => processNextTask(), 500);
         timeoutRefs.current.add(nextTaskTimeoutId);
       }, 30000); // 30 second timeout
       
@@ -384,13 +384,45 @@ export function EnhancedStreamingInterface({
 
       // Generate content for this task using INTELLIGENT AI
       console.log(`🚀 Generating intelligent content for ${task.title}...`);
+      
+      // Add immediate progress indicator
+      const generationStartInsight = {
+        agent: task.agent,
+        message: `🧠 Starting AI generation for ${task.title}...`,
+        timestamp: new Date()
+      };
+      localInsights.push(generationStartInsight);
+      setInsights(prev => [...prev, generationStartInsight]);
+      
       let content = '';
       
       try {
+        const startTime = Date.now();
         content = await generateIntelligentTaskContent(task, prompt, dbType, localContent);
-        console.log(`✅ Intelligent content generated for ${task.title} - Length: ${content.length}`);
+        const duration = Date.now() - startTime;
+        console.log(`✅ Intelligent content generated for ${task.title} - Length: ${content.length} - Duration: ${duration}ms`);
+        
+        // Add success insight with timing
+        const successInsight = {
+          agent: task.agent,
+          message: `✅ AI generation completed for ${task.title} (${(duration / 1000).toFixed(1)}s)`,
+          timestamp: new Date()
+        };
+        localInsights.push(successInsight);
+        setInsights(prev => [...prev, successInsight]);
+        
       } catch (error) {
         console.error(`❌ Intelligent content generation failed for ${task.title}:`, error);
+        
+        // Add error insight
+        const errorInsight = {
+          agent: task.agent,
+          message: `⚠️ AI generation failed for ${task.title}, using fallback content`,
+          timestamp: new Date()
+        };
+        localInsights.push(errorInsight);
+        setInsights(prev => [...prev, errorInsight]);
+        
         // Use enhanced static content as fallback
         content = generateEnhancedStaticContent(task, prompt, dbType);
         console.log(`🔄 Using fallback content for ${task.title} - Length: ${content.length}`);
@@ -485,7 +517,8 @@ export function EnhancedStreamingInterface({
             setInsights(prev => [...prev, completionInsight]);
 
             currentTaskIndex++;
-            const nextTaskTimeoutId = setTimeout(() => processNextTask(), 1000);
+            // Reduced delay between tasks for faster progression (500ms instead of 1000ms)
+            const nextTaskTimeoutId = setTimeout(() => processNextTask(), 500);
             timeoutRefs.current.add(nextTaskTimeoutId);
           }
         } else if (!isPlaying && streamingStateRef.current && streamingStateRef.current.isActive) {
@@ -632,8 +665,8 @@ export function EnhancedStreamingInterface({
         
         setAiReasoning(prev => [...prev, reasoning]);
         
-        // Small delay between reasoning steps for visual effect
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Reduced delay between reasoning steps for faster transitions
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       // Map task type to generation step type
@@ -659,25 +692,47 @@ export function EnhancedStreamingInterface({
       };
       setAiReasoning(prev => [...prev, finalReasoningStep]);
       
-      // Use the revolutionary service to generate content
-      const steps = await revolutionaryDBCoachService.generateDatabaseDesign(
-        prompt,
-        dbType,
-        (progress) => {
-          // Stream progress reasoning to left panel
-          const progressReasoning: AIReasoning = {
-            id: `progress_${task.id}_${Date.now()}`,
-            taskId: task.id,
-            agent: progress.agent,
-            step: progress.step,
-            content: progress.reasoning,
-            timestamp: new Date(),
-            isExpanded: false,
-            confidence: progress.confidence
-          };
-          setAiReasoning(prev => [...prev, progressReasoning]);
-        }
-      );
+      // Use the revolutionary service to generate content with timeout fallback
+      console.time(`🔥 AI Generation for ${task.title}`);
+      
+      // Add timeout to prevent hanging on AI service
+      const GENERATION_TIMEOUT = 15000; // 15 seconds timeout
+      let steps;
+      
+      try {
+        steps = await Promise.race([
+          revolutionaryDBCoachService.generateDatabaseDesign(
+            prompt,
+            dbType,
+            (progress) => {
+              // Stream progress reasoning to left panel with immediate updates
+              const progressReasoning: AIReasoning = {
+                id: `progress_${task.id}_${Date.now()}`,
+                taskId: task.id,
+                agent: progress.agent,
+                step: progress.step,
+                content: progress.reasoning,
+                timestamp: new Date(),
+                isExpanded: false,
+                confidence: progress.confidence
+              };
+              setAiReasoning(prev => [...prev, progressReasoning]);
+              
+              // Log timing for debugging
+              console.log(`📊 Progress update for ${task.title}: ${progress.step} (${progress.confidence * 100}% confidence)`);
+            }
+          ),
+          // Timeout fallback
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Timeout after ${GENERATION_TIMEOUT}ms`)), GENERATION_TIMEOUT)
+          )
+        ]);
+        
+        console.timeEnd(`🔥 AI Generation for ${task.title}`);
+      } catch (error) {
+        console.warn(`⚠️ AI Service timeout for ${task.title}, using faster fallback`);
+        throw error; // Will be caught by outer try-catch and use fallback content
+      }
       
       // Find the matching step or use the first one
       const targetStep = steps.find(step => step.type === stepType) || steps[0];
