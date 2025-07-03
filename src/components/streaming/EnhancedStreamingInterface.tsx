@@ -975,15 +975,15 @@ export function EnhancedStreamingInterface({
 
         {/* Database-specific Content Display */}
         <div className="bg-slate-900/50 rounded-lg border border-slate-600/50 overflow-hidden">
-          {dbContent.type === 'SQL' && renderSQLContent(dbContent, colorClasses)}
-          {dbContent.type === 'NoSQL' && renderNoSQLContent(dbContent, colorClasses)}
-          {dbContent.type === 'VectorDB' && renderVectorDBContent(dbContent, colorClasses)}
+          {dbContent.type === 'SQL' && renderSQLContent(dbContent, colorClasses, content)}
+          {dbContent.type === 'NoSQL' && renderNoSQLContent(dbContent, colorClasses, content)}
+          {dbContent.type === 'VectorDB' && renderVectorDBContent(dbContent, colorClasses, content)}
         </div>
       </div>
     );
   };
 
-  const renderSQLContent = (dbContent: any, colorClasses: any) => (
+  const renderSQLContent = (dbContent: any, colorClasses: any, content: string) => (
     <div className="p-4 space-y-4">
       {/* SQL Code Blocks */}
       {dbContent.blocks.length > 0 && (
@@ -1038,7 +1038,7 @@ export function EnhancedStreamingInterface({
     </div>
   );
 
-  const renderNoSQLContent = (dbContent: any, colorClasses: any) => (
+  const renderNoSQLContent = (dbContent: any, colorClasses: any, content: string) => (
     <div className="p-4 space-y-4">
       {/* Collections */}
       {dbContent.collections.length > 0 && (
@@ -1119,7 +1119,7 @@ export function EnhancedStreamingInterface({
     </div>
   );
 
-  const renderVectorDBContent = (dbContent: any, colorClasses: any) => (
+  const renderVectorDBContent = (dbContent: any, colorClasses: any, content: string) => (
     <div className="p-4 space-y-4">
       {/* Vector Configuration */}
       {(dbContent.dimensions.length > 0 || dbContent.metrics.length > 0) && (
