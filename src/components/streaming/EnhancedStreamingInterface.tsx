@@ -20,10 +20,12 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { StreamingErrorBoundary } from './StreamingErrorBoundary';
+import StreamingErrorHandler from './StreamingErrorHandler';
 import { conversationStorage, ConversationTitleGenerator, SavedConversation } from '../../services/conversationStorage';
 import { AIChatService } from '../../services/aiChatService';
 import { useAuth } from '../../contexts/AuthContext';
 import { revolutionaryDBCoachService } from '../../services/revolutionaryDBCoachService';
+import { resilientStreamingService } from '../../services/resilientStreamingService';
 
 interface StreamingTask {
   id: string;
@@ -99,6 +101,11 @@ export function EnhancedStreamingInterface({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'none' | 'saving' | 'saved' | 'error'>('none');
   const [startTime] = useState(() => new Date());
+  
+  // Error handling state
+  const [streamingError, setStreamingError] = useState<Error | null>(null);
+  const [isInFallbackMode, setIsInFallbackMode] = useState(false);
+  const [errorRecoveryAttempts, setErrorRecoveryAttempts] = useState(0);
   
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -700,37 +707,49 @@ export function EnhancedStreamingInterface({
       let steps;
       
       try {
-        steps = await Promise.race([
-          revolutionaryDBCoachService.generateDatabaseDesign(
-            prompt,
-            dbType,
-            (progress) => {
-              // Stream progress reasoning to left panel with immediate updates
-              const progressReasoning: AIReasoning = {
-                id: `progress_${task.id}_${Date.now()}`,
-                taskId: task.id,
-                agent: progress.agent,
-                step: progress.step,
-                content: progress.reasoning,
-                timestamp: new Date(),
-                isExpanded: false,
-                confidence: progress.confidence
-              };
-              setAiReasoning(prev => [...prev, progressReasoning]);
-              
-              // Log timing for debugging
-              console.log(`📊 Progress update for ${task.title}: ${progress.step} (${progress.confidence * 100}% confidence)`);
-            }
-          ),
-          // Timeout fallback
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`Timeout after ${GENERATION_TIMEOUT}ms`)), GENERATION_TIMEOUT)
-          )
-        ]);
+        // Use resilient streaming service instead of direct service call
+        const result = await resilientStreamingService.generateDatabaseDesign(
+          prompt,
+          dbType,
+          (progress) => {
+            // Stream progress reasoning to left panel with immediate updates
+            const progressReasoning: AIReasoning = {
+              id: `progress_${task.id}_${Date.now()}`,
+              taskId: task.id,
+              agent: progress.agent,
+              step: progress.step,
+              content: progress.reasoning,
+              timestamp: new Date(),
+              isExpanded: false,
+              confidence: progress.confidence
+            };
+            setAiReasoning(prev => [...prev, progressReasoning]);
+            
+            // Log timing for debugging
+            console.log(`📊 Progress update for ${task.title}: ${progress.step} (${progress.confidence * 100}% confidence)`);
+          }
+        );
         
+        if (!result.success) {
+          throw result.error || new Error('Generation failed');
+        }
+        
+        if (result.fallbackUsed) {
+          setIsInFallbackMode(true);
+          const fallbackInsight = {
+            agent: task.agent,
+            message: `⚠️ Using fallback mode for ${task.title} - AI service temporarily unavailable`,
+            timestamp: new Date()
+          };
+          setInsights(prev => [...prev, fallbackInsight]);
+        }
+        
+        steps = result.data;
         console.timeEnd(`🔥 AI Generation for ${task.title}`);
+        
       } catch (error) {
-        console.warn(`⚠️ AI Service timeout for ${task.title}, using faster fallback`);
+        console.warn(`⚠️ AI Service failed for ${task.title}:`, error);
+        setStreamingError(error instanceof Error ? error : new Error(String(error)));
         throw error; // Will be caught by outer try-catch and use fallback content
       }
       
@@ -2254,6 +2273,66 @@ const api = {
           )}
         </div>
       </div>
+      
+      {/* Error Recovery Handler */}
+      {streamingError && (
+        <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-50">
+          <StreamingErrorHandler
+            error={streamingError}
+            onRetry={() => {
+              setStreamingError(null);
+              setErrorRecoveryAttempts(prev => prev + 1);
+              
+              // Reset streaming state and retry
+              setTasks([]);
+              setActiveTask(null);
+              setTaskContent(new Map());
+              setCleanOutput(new Map());
+              setAiReasoning([]);
+              setInsights([]);
+              
+              // Restart streaming with error recovery mode
+              setTimeout(() => {
+                startEnhancedStreaming();
+              }, 1000);
+            }}
+            onFallbackMode={() => {
+              setStreamingError(null);
+              setIsInFallbackMode(true);
+              
+              // Generate fallback content
+              const fallbackContent = resilientStreamingService.generateStaticFallback(prompt, dbType);
+              
+              // Update state with fallback content
+              const fallbackTasks = fallbackContent.map((content: any, index: number) => ({
+                id: `fallback_${index}`,
+                title: content.title,
+                agent: content.agent,
+                status: 'completed' as const,
+                progress: 100,
+                estimatedTime: 0,
+                subtasks: []
+              }));
+              
+              setTasks(fallbackTasks);
+              
+              const fallbackCleanOutput = new Map();
+              fallbackContent.forEach((content: any, index: number) => {
+                fallbackCleanOutput.set(`fallback_${index}`, content.content);
+              });
+              setCleanOutput(fallbackCleanOutput);
+              
+              // Add fallback insight
+              setInsights([{
+                agent: 'System',
+                message: '⚠️ Using fallback mode - AI services temporarily unavailable',
+                timestamp: new Date()
+              }]);
+            }}
+            className="max-w-lg"
+          />
+        </div>
+      )}
     </StreamingErrorBoundary>
   );
 }
