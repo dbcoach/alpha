@@ -220,6 +220,290 @@ export function StreamingResultsViewer({
     return new Date(timestamp).toLocaleString();
   };
 
+  // Database-specific content rendering
+  const renderDatabaseSpecificContent = (content: string, dbType: string) => {
+    if (!content) return null;
+
+    const getDatabaseStyle = (type: string) => {
+      switch (type?.toLowerCase()) {
+        case 'sql':
+          return { 
+            icon: '🗄️', 
+            color: 'text-blue-300', 
+            bg: 'bg-blue-500/10', 
+            border: 'border-blue-400/20',
+            accent: 'bg-blue-400'
+          };
+        case 'nosql':
+          return { 
+            icon: '📄', 
+            color: 'text-green-300', 
+            bg: 'bg-green-500/10', 
+            border: 'border-green-400/20',
+            accent: 'bg-green-400'
+          };
+        case 'vectordb':
+          return { 
+            icon: '🧮', 
+            color: 'text-purple-300', 
+            bg: 'bg-purple-500/10', 
+            border: 'border-purple-400/20',
+            accent: 'bg-purple-400'
+          };
+        default:
+          return { 
+            icon: '💾', 
+            color: 'text-slate-300', 
+            bg: 'bg-slate-500/10', 
+            border: 'border-slate-400/20',
+            accent: 'bg-slate-400'
+          };
+      }
+    };
+
+    const style = getDatabaseStyle(dbType);
+
+    // Extract database-specific content patterns
+    const extractContent = () => {
+      if (dbType?.toLowerCase() === 'sql') {
+        const sqlBlocks = content.match(/```sql\n?([\s\S]*?)```/gi) || [];
+        const createTables = content.match(/CREATE TABLE\s+(\w+)[\s\S]*?;/gi) || [];
+        const insertStatements = content.match(/INSERT INTO\s+\w+[\s\S]*?;/gi) || [];
+        
+        return {
+          type: 'SQL',
+          blocks: sqlBlocks,
+          tables: createTables,
+          inserts: insertStatements,
+          hasSpecificContent: sqlBlocks.length > 0 || createTables.length > 0
+        };
+      } else if (dbType?.toLowerCase() === 'nosql') {
+        const jsonBlocks = content.match(/```(?:json|mongodb?)\n?([\s\S]*?)```/gi) || [];
+        const collections = content.match(/db\.(\w+)/g) || [];
+        const documents = content.match(/\{[\s\S]*?\}/g) || [];
+        
+        return {
+          type: 'NoSQL',
+          blocks: jsonBlocks,
+          collections: [...new Set(collections.map(c => c.replace('db.', '')))],
+          documents: documents.slice(0, 3),
+          hasSpecificContent: jsonBlocks.length > 0 || collections.length > 0
+        };
+      } else if (dbType?.toLowerCase() === 'vectordb') {
+        const codeBlocks = content.match(/```(?:python|vector|embedding)\n?([\s\S]*?)```/gi) || [];
+        const embeddings = content.match(/embeddings?:\s*\[[\s\S]*?\]/gi) || [];
+        const dimensions = content.match(/dimension[s]?:\s*(\d+)/gi) || [];
+        const metrics = content.match(/metric[s]?:\s*(cosine|euclidean|dotproduct)/gi) || [];
+        
+        return {
+          type: 'VectorDB',
+          blocks: codeBlocks,
+          embeddings: embeddings.slice(0, 2),
+          dimensions: dimensions,
+          metrics: metrics,
+          hasSpecificContent: codeBlocks.length > 0 || embeddings.length > 0
+        };
+      }
+      
+      return { type: 'Generic', hasSpecificContent: false };
+    };
+
+    const dbContent = extractContent();
+
+    if (!dbContent.hasSpecificContent) {
+      // Fallback to generic display
+      return (
+        <pre className="text-slate-200 text-sm font-mono whitespace-pre-wrap leading-relaxed">
+          {content}
+        </pre>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {/* Database Type Header */}
+        <div className={`flex items-center gap-2 px-3 py-2 ${style.bg} rounded-lg border ${style.border}`}>
+          <span className="text-base">{style.icon}</span>
+          <span className={`text-sm font-medium ${style.color}`}>
+            {dbContent.type} Content
+          </span>
+        </div>
+
+        {/* SQL Content */}
+        {dbContent.type === 'SQL' && (
+          <div className="space-y-3">
+            {dbContent.blocks && dbContent.blocks.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">SQL Statements</div>
+                {dbContent.blocks.map((block: string, index: number) => {
+                  const cleanSQL = block.replace(/```sql\n?/gi, '').replace(/```/g, '').trim();
+                  return (
+                    <div key={index} className={`${style.bg} rounded p-3 border ${style.border} mb-2`}>
+                      <pre className={`${style.color} font-mono text-sm overflow-x-auto whitespace-pre-wrap`}>
+                        <code>{cleanSQL}</code>
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {dbContent.tables && dbContent.tables.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Database Tables ({dbContent.tables.length})</div>
+                {dbContent.tables.map((table: string, index: number) => {
+                  const tableName = table.match(/CREATE TABLE\s+(\w+)/i)?.[1] || `table_${index}`;
+                  return (
+                    <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30 mb-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-2 h-2 ${style.accent} rounded-full`}></div>
+                        <span className="text-white text-sm font-medium">{tableName}</span>
+                      </div>
+                      <pre className="text-slate-300 font-mono text-xs overflow-x-auto">
+                        <code>{table}</code>
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* NoSQL Content */}
+        {dbContent.type === 'NoSQL' && (
+          <div className="space-y-3">
+            {dbContent.collections && dbContent.collections.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Collections</div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {dbContent.collections.map((collection: string, index: number) => (
+                    <span key={index} className={`px-2 py-1 ${style.bg} ${style.color} rounded text-xs border ${style.border}`}>
+                      {collection}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {dbContent.blocks && dbContent.blocks.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Document Schemas</div>
+                {dbContent.blocks.map((block: string, index: number) => {
+                  const cleanJSON = block.replace(/```(?:json|mongodb?)\n?/gi, '').replace(/```/g, '').trim();
+                  let formattedJSON = cleanJSON;
+                  try {
+                    const parsed = JSON.parse(cleanJSON);
+                    formattedJSON = JSON.stringify(parsed, null, 2);
+                  } catch (e) {
+                    // Keep original if not valid JSON
+                  }
+                  return (
+                    <div key={index} className={`${style.bg} rounded p-3 border ${style.border} mb-2`}>
+                      <pre className={`${style.color} font-mono text-sm overflow-x-auto whitespace-pre-wrap`}>
+                        <code>{formattedJSON}</code>
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {dbContent.documents && dbContent.documents.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Sample Documents</div>
+                {dbContent.documents.map((doc: string, index: number) => {
+                  let formattedDoc = doc;
+                  try {
+                    const parsed = JSON.parse(doc);
+                    formattedDoc = JSON.stringify(parsed, null, 2);
+                  } catch (e) {
+                    // Keep original format
+                  }
+                  return (
+                    <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30 mb-2">
+                      <pre className="text-slate-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                        <code>{formattedDoc}</code>
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VectorDB Content */}
+        {dbContent.type === 'VectorDB' && (
+          <div className="space-y-3">
+            {(dbContent.dimensions?.length > 0 || dbContent.metrics?.length > 0) && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Vector Configuration</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {dbContent.dimensions && dbContent.dimensions.length > 0 && (
+                    <div className={`${style.bg} rounded p-3 border ${style.border}`}>
+                      <div className="text-xs text-slate-400">Dimensions</div>
+                      <div className={`${style.color} font-mono text-sm`}>{dbContent.dimensions[0]}</div>
+                    </div>
+                  )}
+                  {dbContent.metrics && dbContent.metrics.length > 0 && (
+                    <div className={`${style.bg} rounded p-3 border ${style.border}`}>
+                      <div className="text-xs text-slate-400">Metric</div>
+                      <div className={`${style.color} font-mono text-sm`}>{dbContent.metrics[0]}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {dbContent.blocks && dbContent.blocks.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Vector Operations</div>
+                {dbContent.blocks.map((block: string, index: number) => {
+                  const cleanCode = block.replace(/```(?:python|vector|embedding)\n?/gi, '').replace(/```/g, '').trim();
+                  return (
+                    <div key={index} className={`${style.bg} rounded p-3 border ${style.border} mb-2`}>
+                      <pre className={`${style.color} font-mono text-sm overflow-x-auto whitespace-pre-wrap`}>
+                        <code>{cleanCode}</code>
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {dbContent.embeddings && dbContent.embeddings.length > 0 && (
+              <div>
+                <div className="text-xs text-slate-400 mb-2">Sample Embeddings</div>
+                {dbContent.embeddings.map((embedding: string, index: number) => (
+                  <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30 mb-2">
+                    <pre className="text-slate-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                      <code>{embedding}</code>
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fallback for any remaining content */}
+        <div className="mt-4">
+          <details className="group">
+            <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300 mb-2">
+              View Raw Content
+            </summary>
+            <div className="bg-slate-800/30 rounded p-3 border border-slate-700/30">
+              <pre className="text-slate-300 text-xs font-mono whitespace-pre-wrap leading-relaxed">
+                {content}
+              </pre>
+            </div>
+          </details>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     return () => {
       if (replayIntervalRef.current) {
@@ -379,12 +663,10 @@ export function StreamingResultsViewer({
                       </div>
                       
                       <div className="p-4">
-                        <pre className="text-slate-200 text-sm font-mono whitespace-pre-wrap leading-relaxed">
-                          {content}
-                          {!isComplete && isReplaying && (
-                            <span className="inline-block w-2 h-4 bg-green-400 animate-pulse ml-1" />
-                          )}
-                        </pre>
+                        {renderDatabaseSpecificContent(content, project.database_type)}
+                        {!isComplete && isReplaying && (
+                          <span className="inline-block w-2 h-4 bg-green-400 animate-pulse ml-1" />
+                        )}
                       </div>
                     </div>
                   );

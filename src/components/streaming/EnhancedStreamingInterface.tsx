@@ -843,91 +843,351 @@ export function EnhancedStreamingInterface({
     ));
   };
 
-  // Parse and render database content visually
+  // Parse and render database content visually with database-type specific formatting
   const renderDatabaseContent = (content: string, taskTitle: string) => {
     if (!content) {
       console.warn('⚠️ renderDatabaseContent: No content to render for', taskTitle);
       return null;
     }
 
-    console.log('🎨 Rendering database content for', taskTitle, 'length:', content.length);
+    console.log('🎨 Rendering database content for', taskTitle, 'DB Type:', dbType, 'length:', content.length);
 
-    // Extract SQL blocks
-    const sqlBlocks = content.match(/```sql\n?([\s\S]*?)```/gi) || [];
-    const tableCreations = content.match(/CREATE TABLE\s+(\w+)\s*\(([\s\S]*?)\);/gi) || [];
-    
-    // Extract sections
-    const sections = content.split(/#{2,3}\s+(.+)/g).filter(Boolean);
+    // Database-specific content extraction
+    const extractDatabaseContent = () => {
+      switch (dbType?.toLowerCase()) {
+        case 'sql':
+          return extractSQLContent(content);
+        case 'nosql':
+          return extractNoSQLContent(content);
+        case 'vectordb':
+          return extractVectorDBContent(content);
+        default:
+          return extractSQLContent(content); // Fallback to SQL
+      }
+    };
+
+    const extractSQLContent = (content: string) => {
+      const sqlBlocks = content.match(/```sql\n?([\s\S]*?)```/gi) || [];
+      const tableCreations = content.match(/CREATE TABLE\s+(\w+)\s*\(([\s\S]*?)\);/gi) || [];
+      const insertStatements = content.match(/INSERT INTO\s+\w+[\s\S]*?;/gi) || [];
+      const constraints = content.match(/(PRIMARY KEY|FOREIGN KEY|UNIQUE|CHECK)[\s\S]*?[,;]/gi) || [];
+      
+      return {
+        type: 'SQL',
+        icon: '🗄️',
+        color: 'blue',
+        blocks: sqlBlocks,
+        tables: tableCreations,
+        inserts: insertStatements,
+        constraints: constraints
+      };
+    };
+
+    const extractNoSQLContent = (content: string) => {
+      const jsonBlocks = content.match(/```json\n?([\s\S]*?)```/gi) || [];
+      const mongoBlocks = content.match(/```mongodb?\n?([\s\S]*?)```/gi) || [];
+      const collections = content.match(/db\.(\w+)\./g) || [];
+      const documents = content.match(/\{[\s\S]*?\}/g) || [];
+      
+      return {
+        type: 'NoSQL',
+        icon: '📄',
+        color: 'green',
+        blocks: [...jsonBlocks, ...mongoBlocks],
+        collections: [...new Set(collections.map(c => c.replace(/db\./, '').replace(/\.$/, '')))],
+        documents: documents.slice(0, 5), // Limit to first 5 documents
+        schemas: content.match(/schema:\s*\{[\s\S]*?\}/gi) || []
+      };
+    };
+
+    const extractVectorDBContent = (content: string) => {
+      const vectorBlocks = content.match(/```(?:python|vector|embedding)\n?([\s\S]*?)```/gi) || [];
+      const embeddings = content.match(/embeddings?:\s*\[[\s\S]*?\]/gi) || [];
+      const indices = content.match(/index[_\s]*(?:name|type):\s*[\w\-"']+/gi) || [];
+      const dimensions = content.match(/dimension[s]?:\s*(\d+)/gi) || [];
+      const metrics = content.match(/metric[s]?:\s*(cosine|euclidean|dotproduct|manhattan)/gi) || [];
+      
+      return {
+        type: 'VectorDB',
+        icon: '🧮',
+        color: 'purple',
+        blocks: vectorBlocks,
+        embeddings: embeddings.slice(0, 3), // Limit to first 3 embeddings
+        indices: indices,
+        dimensions: dimensions,
+        metrics: metrics
+      };
+    };
+
+    const dbContent = extractDatabaseContent();
     
     console.log('📊 Content analysis:', {
-      sqlBlocks: sqlBlocks.length,
-      tableCreations: tableCreations.length,
-      sections: sections.length
+      type: dbContent.type,
+      blocks: dbContent.blocks?.length || 0,
+      tables: dbContent.tables?.length || 0,
+      collections: dbContent.collections?.length || 0,
+      embeddings: dbContent.embeddings?.length || 0
     });
 
-    // Simple, reliable content display
+    const getColorClasses = (color: string) => {
+      const colors = {
+        blue: { bg: 'bg-blue-500/20', border: 'border-blue-400/30', text: 'text-blue-300', accent: 'bg-blue-400' },
+        green: { bg: 'bg-green-500/20', border: 'border-green-400/30', text: 'text-green-300', accent: 'bg-green-400' },
+        purple: { bg: 'bg-purple-500/20', border: 'border-purple-400/30', text: 'text-purple-300', accent: 'bg-purple-400' }
+      };
+      return colors[color as keyof typeof colors] || colors.blue;
+    };
+
+    const colorClasses = getColorClasses(dbContent.color);
+
+    // Render database-specific content
     return (
       <div className="space-y-4">
-        {/* Task Header */}
-        <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/50">
+        {/* Task Header with DB Type */}
+        <div className={`${colorClasses.bg} rounded-lg p-3 border ${colorClasses.border}`}>
           <h4 className="text-white font-medium flex items-center gap-2">
-            <Database className="w-4 h-4 text-green-400" />
+            <span className="text-lg">{dbContent.icon}</span>
             {taskTitle}
+            <span className={`text-xs px-2 py-1 rounded-full ${colorClasses.bg} ${colorClasses.text}`}>
+              {dbContent.type}
+            </span>
           </h4>
         </div>
 
-        {/* Content Display */}
+        {/* Database-specific Content Display */}
         <div className="bg-slate-900/50 rounded-lg border border-slate-600/50 overflow-hidden">
-          {/* SQL Code Blocks */}
-          {sqlBlocks.length > 0 && (
-            <div className="space-y-3 p-4">
-              {sqlBlocks.map((block, index) => {
-                const cleanSQL = block.replace(/```sql\n?/gi, '').replace(/```/g, '').trim();
-                return (
-                  <div key={index} className="bg-slate-800/50 rounded p-3 border border-slate-700/30">
-                    <div className="text-xs text-slate-400 mb-2">SQL Code</div>
-                    <pre className="text-green-300 font-mono text-sm overflow-x-auto">
-                      <code>{cleanSQL}</code>
-                    </pre>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Database Tables */}
-          {tableCreations.length > 0 && (
-            <div className="p-4 space-y-3">
-              <div className="text-sm text-slate-300 font-medium">Database Tables ({tableCreations.length})</div>
-              {tableCreations.map((tableSQL, index) => {
-                const tableName = tableSQL.match(/CREATE TABLE\s+(\w+)/i)?.[1] || `table_${index}`;
-                return (
-                  <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30">
-                    <div className="text-white font-medium mb-2 flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-400 rounded"></div>
-                      {tableName}
-                    </div>
-                    <pre className="text-slate-300 font-mono text-xs overflow-x-auto">
-                      <code>{tableSQL}</code>
-                    </pre>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Text Content */}
-          {(sqlBlocks.length === 0 && tableCreations.length === 0) && (
-            <div className="p-4">
-              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {content}
-              </div>
-            </div>
-          )}
+          {dbContent.type === 'SQL' && renderSQLContent(dbContent, colorClasses)}
+          {dbContent.type === 'NoSQL' && renderNoSQLContent(dbContent, colorClasses)}
+          {dbContent.type === 'VectorDB' && renderVectorDBContent(dbContent, colorClasses)}
         </div>
       </div>
     );
   };
+
+  const renderSQLContent = (dbContent: any, colorClasses: any) => (
+    <div className="p-4 space-y-4">
+      {/* SQL Code Blocks */}
+      {dbContent.blocks.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            SQL Statements ({dbContent.blocks.length})
+          </h5>
+          {dbContent.blocks.map((block: string, index: number) => {
+            const cleanSQL = block.replace(/```sql\n?/gi, '').replace(/```/g, '').trim();
+            return (
+              <div key={index} className={`${colorClasses.bg} rounded p-3 border ${colorClasses.border}`}>
+                <pre className="text-blue-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
+                  <code>{cleanSQL}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Database Tables */}
+      {dbContent.tables.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Database Tables ({dbContent.tables.length})
+          </h5>
+          {dbContent.tables.map((tableSQL: string, index: number) => {
+            const tableName = tableSQL.match(/CREATE TABLE\s+(\w+)/i)?.[1] || `table_${index}`;
+            return (
+              <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30">
+                <div className="text-white font-medium mb-2 flex items-center gap-2">
+                  <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+                  {tableName}
+                </div>
+                <pre className="text-slate-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                  <code>{tableSQL}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fallback Text Content */}
+      {(dbContent.blocks.length === 0 && dbContent.tables.length === 0) && (
+        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+          {content}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderNoSQLContent = (dbContent: any, colorClasses: any) => (
+    <div className="p-4 space-y-4">
+      {/* Collections */}
+      {dbContent.collections.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Collections ({dbContent.collections.length})
+          </h5>
+          <div className="flex flex-wrap gap-2">
+            {dbContent.collections.map((collection: string, index: number) => (
+              <span key={index} className={`px-3 py-1 ${colorClasses.bg} ${colorClasses.text} rounded-full text-sm border ${colorClasses.border}`}>
+                {collection}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* JSON/MongoDB Blocks */}
+      {dbContent.blocks.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Document Schemas ({dbContent.blocks.length})
+          </h5>
+          {dbContent.blocks.map((block: string, index: number) => {
+            const cleanJSON = block.replace(/```(?:json|mongodb?)\n?/gi, '').replace(/```/g, '').trim();
+            let formattedJSON = cleanJSON;
+            try {
+              const parsed = JSON.parse(cleanJSON);
+              formattedJSON = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+              // Keep original if not valid JSON
+            }
+            return (
+              <div key={index} className={`${colorClasses.bg} rounded p-3 border ${colorClasses.border}`}>
+                <pre className="text-green-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
+                  <code>{formattedJSON}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Sample Documents */}
+      {dbContent.documents.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Sample Documents ({dbContent.documents.length})
+          </h5>
+          {dbContent.documents.map((doc: string, index: number) => {
+            let formattedDoc = doc;
+            try {
+              const parsed = JSON.parse(doc);
+              formattedDoc = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+              // Keep original if not valid JSON
+            }
+            return (
+              <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30">
+                <pre className="text-slate-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                  <code>{formattedDoc}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fallback Text Content */}
+      {(dbContent.blocks.length === 0 && dbContent.collections.length === 0) && (
+        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+          {content}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderVectorDBContent = (dbContent: any, colorClasses: any) => (
+    <div className="p-4 space-y-4">
+      {/* Vector Configuration */}
+      {(dbContent.dimensions.length > 0 || dbContent.metrics.length > 0) && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Vector Configuration
+          </h5>
+          <div className="grid grid-cols-2 gap-3">
+            {dbContent.dimensions.length > 0 && (
+              <div className={`${colorClasses.bg} rounded p-3 border ${colorClasses.border}`}>
+                <div className="text-xs text-slate-400 mb-1">Dimensions</div>
+                <div className={`${colorClasses.text} font-mono`}>{dbContent.dimensions[0]}</div>
+              </div>
+            )}
+            {dbContent.metrics.length > 0 && (
+              <div className={`${colorClasses.bg} rounded p-3 border ${colorClasses.border}`}>
+                <div className="text-xs text-slate-400 mb-1">Distance Metric</div>
+                <div className={`${colorClasses.text} font-mono`}>{dbContent.metrics[0]}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Vector Indices */}
+      {dbContent.indices.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Vector Indices ({dbContent.indices.length})
+          </h5>
+          <div className="flex flex-wrap gap-2">
+            {dbContent.indices.map((index: string, idx: number) => (
+              <span key={idx} className={`px-3 py-1 ${colorClasses.bg} ${colorClasses.text} rounded-full text-sm border ${colorClasses.border}`}>
+                {index}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Vector Code Blocks */}
+      {dbContent.blocks.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Vector Operations ({dbContent.blocks.length})
+          </h5>
+          {dbContent.blocks.map((block: string, index: number) => {
+            const cleanCode = block.replace(/```(?:python|vector|embedding)\n?/gi, '').replace(/```/g, '').trim();
+            return (
+              <div key={index} className={`${colorClasses.bg} rounded p-3 border ${colorClasses.border}`}>
+                <pre className="text-purple-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
+                  <code>{cleanCode}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Sample Embeddings */}
+      {dbContent.embeddings.length > 0 && (
+        <div className="space-y-3">
+          <h5 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+            <div className={`w-3 h-3 ${colorClasses.accent} rounded`}></div>
+            Sample Embeddings ({dbContent.embeddings.length})
+          </h5>
+          {dbContent.embeddings.map((embedding: string, index: number) => (
+            <div key={index} className="bg-slate-800/30 rounded p-3 border border-slate-700/30">
+              <pre className="text-slate-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                <code>{embedding}</code>
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Fallback Text Content */}
+      {(dbContent.blocks.length === 0 && dbContent.embeddings.length === 0) && (
+        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+          {content}
+        </div>
+      )}
+    </div>
+  );
 
   // Generate minimal content that always works
   const generateMinimalContent = (task: StreamingTask, prompt: string, dbType: string): string => {
