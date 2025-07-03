@@ -112,6 +112,15 @@ export function EnhancedStreamingInterface({
   const streamingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  
+  // Enhanced timeout and state management refs
+  const timeoutRefs = useRef<Set<NodeJS.Timeout>>(new Set());
+  const streamingStateRef = useRef<{
+    taskId: string;
+    contentIndex: number;
+    isActive: boolean;
+  } | null>(null);
+  const taskTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Initialize streaming session and capture
   useEffect(() => {
@@ -122,9 +131,25 @@ export function EnhancedStreamingInterface({
     }
     
     return () => {
+      // Comprehensive cleanup of all timeouts and intervals
       if (streamingIntervalRef.current) {
         clearInterval(streamingIntervalRef.current);
       }
+      
+      // Clear all streaming timeouts
+      timeoutRefs.current.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      timeoutRefs.current.clear();
+      
+      // Clear all task timeouts
+      taskTimeoutRefs.current.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      taskTimeoutRefs.current.clear();
+      
+      // Reset streaming state
+      streamingStateRef.current = null;
     };
   }, [isViewingMode, existingConversation]);
 
@@ -318,6 +343,35 @@ export function EnhancedStreamingInterface({
       task.status = 'active';
       setActiveTask(task);
       setTasks([...localTasks]);
+      
+      // Add task timeout safety net (30 seconds)
+      const taskTimeoutId = setTimeout(() => {
+        console.warn(`⚠️ Task ${task.title} timed out after 30 seconds, forcing completion`);
+        
+        // Force complete the task
+        task.status = 'completed';
+        task.progress = 100;
+        setTasks([...localTasks]);
+        
+        // Add timeout completion insight
+        const timeoutInsight = {
+          agent: task.agent,
+          message: `${task.title} completed (timeout safety net triggered)`,
+          timestamp: new Date()
+        };
+        localInsights.push(timeoutInsight);
+        setInsights(prev => [...prev, timeoutInsight]);
+        
+        // Clear any existing streaming state
+        streamingStateRef.current = null;
+        
+        // Continue to next task
+        currentTaskIndex++;
+        const nextTaskTimeoutId = setTimeout(() => processNextTask(), 1000);
+        timeoutRefs.current.add(nextTaskTimeoutId);
+      }, 30000); // 30 second timeout
+      
+      taskTimeoutRefs.current.set(task.id, taskTimeoutId);
 
       // Add insight about starting task
       const startInsight = {
@@ -361,11 +415,28 @@ export function EnhancedStreamingInterface({
       
       // Stream content character by character (for raw content if needed)
       let contentIndex = 0;
+      
+      // Initialize streaming state
+      streamingStateRef.current = {
+        taskId: task.id,
+        contentIndex: 0,
+        isActive: true
+      };
+      
       const streamContent = async () => {
-        if (contentIndex < content.length && isPlaying) {
+        // Check if this streaming instance is still valid
+        if (!streamingStateRef.current || streamingStateRef.current.taskId !== task.id) {
+          console.log(`🚫 Streaming cancelled for ${task.title} - state mismatch`);
+          return;
+        }
+        
+        if (contentIndex < content.length && isPlaying && streamingStateRef.current.isActive) {
           const charsToAdd = Math.max(1, Math.floor(streamingSpeed / 60));
           const newChars = content.substring(contentIndex, contentIndex + charsToAdd);
           contentIndex += charsToAdd;
+          
+          // Update streaming state
+          streamingStateRef.current.contentIndex = contentIndex;
 
           // Update both local and state content (raw content for insights)
           const currentContent = localContent.get(task.id) || '';
@@ -384,9 +455,22 @@ export function EnhancedStreamingInterface({
           setTasks([...localTasks]);
 
           if (contentIndex < content.length) {
-            setTimeout(streamContent, 1000 / 60); // 60 FPS
+            const timeoutId = setTimeout(streamContent, 1000 / 60); // 60 FPS
+            timeoutRefs.current.add(timeoutId);
           } else {
-            // Task completed
+            // Task completed successfully
+            console.log(`✅ Task ${task.title} completed naturally`);
+            
+            // Clear task timeout
+            const taskTimeoutId = taskTimeoutRefs.current.get(task.id);
+            if (taskTimeoutId) {
+              clearTimeout(taskTimeoutId);
+              taskTimeoutRefs.current.delete(task.id);
+            }
+            
+            // Clear streaming state
+            streamingStateRef.current = null;
+            
             task.status = 'completed';
             task.progress = 100;
             setTasks([...localTasks]);
@@ -401,11 +485,31 @@ export function EnhancedStreamingInterface({
             setInsights(prev => [...prev, completionInsight]);
 
             currentTaskIndex++;
-            setTimeout(() => processNextTask(), 1000);
+            const nextTaskTimeoutId = setTimeout(() => processNextTask(), 1000);
+            timeoutRefs.current.add(nextTaskTimeoutId);
           }
-        } else if (!isPlaying) {
-          // Paused, check again later
-          setTimeout(streamContent, 100);
+        } else if (!isPlaying && streamingStateRef.current && streamingStateRef.current.isActive) {
+          // Paused state - implement smart resume logic
+          console.log(`⏸️ Task ${task.title} paused at ${contentIndex}/${content.length}`);
+          
+          const checkResume = () => {
+            // Verify this resume check is still valid
+            if (!streamingStateRef.current || streamingStateRef.current.taskId !== task.id) {
+              return; // Streaming was cancelled or moved to different task
+            }
+            
+            if (isPlaying && streamingStateRef.current.isActive) {
+              console.log(`▶️ Resuming task ${task.title} from ${contentIndex}/${content.length}`);
+              streamContent(); // Resume from current position
+            } else if (!isPlaying && streamingStateRef.current.isActive) {
+              // Still paused, check again
+              const resumeTimeoutId = setTimeout(checkResume, 250); // Check every 250ms
+              timeoutRefs.current.add(resumeTimeoutId);
+            }
+          };
+          
+          const resumeTimeoutId = setTimeout(checkResume, 250);
+          timeoutRefs.current.add(resumeTimeoutId);
         }
       };
 
@@ -1262,11 +1366,43 @@ const api = {
   };
 
   const handlePlayPause = useCallback(() => {
-    setIsPlaying(!isPlaying);
+    const newPlayingState = !isPlaying;
+    setIsPlaying(newPlayingState);
+    
+    // Log state change for debugging
+    console.log(`🎬 Play/Pause: ${isPlaying ? 'PAUSED' : 'PLAYING'} -> ${newPlayingState ? 'PLAYING' : 'PAUSED'}`);
+    
+    // If resuming and we have active streaming state, it will automatically resume
+    // If pausing, the streaming will detect this and pause gracefully
+    if (streamingStateRef.current) {
+      console.log(`📊 Current streaming state:`, {
+        taskId: streamingStateRef.current.taskId,
+        contentIndex: streamingStateRef.current.contentIndex,
+        isActive: streamingStateRef.current.isActive
+      });
+    }
   }, [isPlaying]);
 
   const handleStop = useCallback(() => {
+    console.log('🛑 Stop requested - forcing completion');
+    
+    // Stop all streaming
     setIsPlaying(false);
+    
+    // Deactivate current streaming state
+    if (streamingStateRef.current) {
+      streamingStateRef.current.isActive = false;
+      streamingStateRef.current = null;
+    }
+    
+    // Clear all timeouts
+    timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+    timeoutRefs.current.clear();
+    
+    taskTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+    taskTimeoutRefs.current.clear();
+    
+    // Force complete streaming
     completeStreaming();
   }, []);
 
