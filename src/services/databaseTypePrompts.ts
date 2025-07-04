@@ -401,126 +401,70 @@ Focus on: Query optimization, document design, sharding strategies, and scalabil
 };
 
 export const VECTORDB_PROMPTS: PromptTemplate = {
-  systemPrompt: `You are a Vector Database Expert specializing in AI-native semantic search and similarity matching.
+  systemPrompt: `You are a Vector Database Expert specializing in AI-native semantic search.
 
-### EXPERTISE DOMAIN: Vector Database Systems
-- **Philosophy**: Semantic similarity, AI/ML integration, high-dimensional search
-- **Design Approach**: Vector embeddings, metadata enrichment, ANN algorithms
-- **Query Paradigm**: k-NN search, semantic queries, similarity scoring
-- **Scaling Strategy**: Distributed indexes, GPU acceleration, quantization
+### CORE EXPERTISE:
+- Vector embeddings and high-dimensional search
+- ANN algorithms: HNSW, IVF, LSH  
+- Hybrid vector + metadata filtering
+- AI/ML pipeline integration
 
-### CORE PRINCIPLES:
-1. **Semantic Search**: Beyond keyword matching to meaning-based retrieval
-2. **Vector Embeddings**: High-dimensional representations of data
-3. **ANN Algorithms**: HNSW, IVF, LSH for approximate search
-4. **Metadata Integration**: Hybrid vector + traditional filtering
-5. **AI Pipeline Integration**: Embedding generation and model serving
+### DESIGN APPROACH:
+- Focus on embedding strategy and dimensionality
+- Optimize index structures for performance
+- Balance search accuracy vs. speed
+- Ensure production-ready implementation`,
 
-### THINKING PROCESS:
-- Identify embedding models and dimensionality requirements
-- Design metadata schemas for hybrid filtering
-- Plan vector index structures and parameters
-- Consider search accuracy vs. performance trade-offs
-- Optimize for AI/ML workflow integration`,
+  analysisPrompt: `Analyze this Vector database request: {user_request}
 
-  analysisPrompt: `Analyze this request for Vector database design:
+### ANALYSIS FRAMEWORK:
+1. **Embedding Strategy**: Data types, model selection, dimensionality
+2. **Search Patterns**: Use cases, accuracy vs. performance 
+3. **Index Architecture**: HNSW/IVF/LSH selection, distance metrics
+4. **Hybrid Search**: Metadata filtering requirements
 
-**Request**: {user_request}
+Provide concise analysis focused on key technical requirements.`,
 
-### VECTOR DB-SPECIFIC ANALYSIS FRAMEWORK:
+  designPrompt: `Design Vector database system: {analysis_results}
 
-1. **Embedding Strategy Analysis**:
-   - Data types requiring vectorization (text, images, audio)
-   - Embedding model selection and dimensionality
-   - Vector generation pipeline requirements
-   
-2. **Search Pattern Evaluation**:
-   - Similarity search use cases
-   - Accuracy vs. performance requirements
-   - Real-time vs. batch search needs
-   
-3. **Index Architecture Planning**:
-   - Vector index algorithm selection (HNSW, IVF, LSH)
-   - Distance metrics (cosine, euclidean, dot product)
-   - Index size and memory considerations
-   
-4. **Hybrid Search Requirements**:
-   - Metadata filtering needs
-   - Combined vector + traditional search
-   - Multi-modal search capabilities
+## 🧮 Vector Database Design
 
-Provide analysis focused on embedding strategies and semantic search optimization.`,
-
-  designPrompt: `Design a Vector database system based on this analysis:
-
-**Requirements**: {analysis_results}
-
-### VECTOR DATABASE DESIGN OUTPUT:
-
-## 🧮 Vector Database Architecture
-
-### Vector Schema and Configuration
+### Vector Schema
 \`\`\`python
-# Vector collection with embedding specifications
+# Collection setup with embeddings and metadata
 {generate_vector_schema}
-
-# Index configuration for optimal search
-{generate_index_config}
 \`\`\`
 
-### Embedding Pipeline
+### Index Configuration  
 \`\`\`python
-# Data preprocessing and vectorization
-{generate_embedding_pipeline}
-
-# Model serving and vector generation
-{generate_embedding_service}
+# HNSW/IVF index with optimized parameters
+{generate_index_config}
 \`\`\`
 
 ### Search Operations
 \`\`\`python
-# Similarity search with filtering
+# Similarity search and hybrid filtering
 {generate_search_examples}
-
-# Hybrid queries combining vector + metadata
-{generate_hybrid_queries}
 \`\`\`
 
-Focus on: Embedding quality, search performance, index optimization, and AI integration.`,
+Focus on production-ready implementation with optimal performance.`,
 
-  implementationPrompt: `Generate Vector database implementation package:
+  implementationPrompt: `Generate Vector database implementation:
 
-### Vector Collections
 \`\`\`python
-# Collection setup with proper indexing
+# Vector collections with indexing
 {create_vector_collections}
-\`\`\`
 
-### Sample Embeddings
-\`\`\`python
-# Realistic vector data with metadata
+# Sample data with embeddings  
 {generate_sample_vectors}
-\`\`\`
 
-### Search APIs
-\`\`\`python
-# Production-ready search endpoints
+# Search API endpoints
 {generate_search_apis}
 \`\`\``,
 
-  validationPrompt: `Validate Vector DB design for:
-- Embedding quality and consistency
-- Search accuracy and recall
-- Index performance optimization
-- Scalability architecture
-- AI pipeline integration`,
+  validationPrompt: `Validate Vector DB for embedding quality, search accuracy, index performance, and scalability.`,
 
-  responseFormat: `Structure response as:
-1. **Vector Schema Design**
-2. **Embedding Strategy**
-3. **Index Configuration**
-4. **Search Optimization**
-5. **AI Integration Architecture**`
+  responseFormat: `Structure as: 1. Schema 2. Embeddings 3. Indexing 4. Search 5. Integration`
 };
 
 export class DatabaseTypePromptEngine {

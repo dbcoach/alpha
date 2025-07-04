@@ -31,8 +31,8 @@ export interface StreamingDiagnostics {
 
 class ResilientStreamingService {
   private config: StreamingConfig = {
-    timeout: 15000, // 15 seconds default
-    retryAttempts: 3,
+    timeout: 45000, // 45 seconds - optimized for vector database generation
+    retryAttempts: 2, // Reduced from 3 to minimize delays
     fallbackMode: true,
     enableDiagnostics: true
   };
@@ -157,7 +157,7 @@ class ResilientStreamingService {
         
         // If not the last attempt, wait before retry
         if (attempt < this.config.retryAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+          const delay = Math.min(500 * Math.pow(2, attempt - 1), 2000); // Faster backoff, max 2s
           console.log(`⏱️ Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }

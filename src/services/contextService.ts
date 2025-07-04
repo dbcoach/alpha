@@ -33,9 +33,28 @@ export interface ConversationContext {
 }
 
 export class ContextService {
+  private contextCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_TTL = 300000; // 5 minutes
+
+  private getCachedContext<T>(key: string): T | null {
+    const cached = this.contextCache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.data as T;
+    }
+    return null;
+  }
+
+  private setCachedContext<T>(key: string, data: T): T {
+    this.contextCache.set(key, { data, timestamp: Date.now() });
+    return data;
+  }
+
   async gatherDatabaseContext(): Promise<DatabaseContext> {
+    const cached = this.getCachedContext<DatabaseContext>('database');
+    if (cached) return cached;
+
     // In a real implementation, this would query the actual database
-    return {
+    const context = {
       tables: ['users', 'orders', 'products', 'categories'],
       schemas: {
         users: 'CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(255), email VARCHAR(255));',
@@ -46,24 +65,34 @@ export class ContextService {
         'order_items.order_id -> orders.id (one-to-many)'
       ]
     };
+    
+    return this.setCachedContext('database', context);
   }
 
   async gatherWorkspaceContext(): Promise<WorkspaceContext> {
+    const cached = this.getCachedContext<WorkspaceContext>('workspace');
+    if (cached) return cached;
+
     // Would integrate with IDE/editor context
-    return {
+    const context = {
       activeFile: 'schema.sql',
       projectStructure: ['src/', 'migrations/', 'tests/'],
       codeContext: 'Working on database schema design'
     };
+    
+    return this.setCachedContext('workspace', context);
   }
 
   async gatherUserContext(): Promise<UserContext> {
+    const cached = this.getCachedContext<UserContext>('user');
+    if (cached) return cached;
+
     // Would load from user preferences/settings
-    return {
+    const context = {
       preferences: {
-        explanationLevel: 'intermediate',
-        safetySettings: 'strict',
-        outputFormat: 'detailed'
+        explanationLevel: 'intermediate' as const,
+        safetySettings: 'strict' as const,
+        outputFormat: 'detailed' as const
       },
       customRules: [
         'Always use snake_case for table names',
@@ -71,6 +100,8 @@ export class ContextService {
         'Use UUID for primary keys in new tables'
       ]
     };
+    
+    return this.setCachedContext('user', context);
   }
 
   async gatherConversationContext(conversation?: SavedConversation): Promise<ConversationContext> {
