@@ -17,7 +17,8 @@
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
       "Bash(node:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
