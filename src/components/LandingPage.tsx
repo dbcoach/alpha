@@ -5,7 +5,6 @@ import { DBCoachMode } from '../context/GenerationContext';
 import AuthButton from './auth/AuthButton';
 import { useAuth } from '../contexts/AuthContext';
 import useGeneration from '../hooks/useGeneration';
-import { BoltNewBadge } from './ui/BoltNewBadge';
 import { VideoIntroModal } from './VideoIntroModal';
 
 const LandingPage: React.FC = () => {
@@ -316,8 +315,6 @@ const LandingPage: React.FC = () => {
       {/* Bottom spacing */}
       <div className="h-12"></div>
 
-      {/* Bolt.new Badge */}
-      <BoltNewBadge />
 
       {/* Video Introduction Modal */}
       <VideoIntroModal
