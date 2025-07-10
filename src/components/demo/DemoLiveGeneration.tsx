@@ -12,7 +12,6 @@ import {
 import { EnhancedStreamingInterface } from '../streaming/EnhancedStreamingInterface';
 import { StreamingErrorBoundary } from '../streaming/StreamingErrorBoundary';
 import { useDemo } from '../../contexts/DemoContext';
-import { BoltNewBadge } from '../ui/BoltNewBadge';
 
 const SAMPLE_PROMPTS = {
   'E-commerce Platform': 'E-commerce platform with products, orders, customers, inventory management, shopping cart, and payment processing',
@@ -126,8 +125,6 @@ export function DemoLiveGeneration() {
           </div>
         </div>
         
-        {/* Bolt.new Badge */}
-        <BoltNewBadge />
       </div>
     );
   }
@@ -287,8 +284,6 @@ export function DemoLiveGeneration() {
         </div>
       </div>
       
-      {/* Bolt.new Badge */}
-      <BoltNewBadge />
     </div>
   );
 }

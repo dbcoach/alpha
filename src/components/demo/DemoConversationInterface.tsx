@@ -14,7 +14,6 @@ import { EnhancedStreamingInterface } from '../streaming/EnhancedStreamingInterf
 import { StreamingErrorBoundary } from '../streaming/StreamingErrorBoundary';
 import { useDemo } from '../../contexts/DemoContext';
 import { SavedConversation } from '../../services/conversationStorage';
-import { BoltNewBadge } from '../ui/BoltNewBadge';
 
 export function DemoConversationInterface() {
   const navigate = useNavigate();
@@ -194,8 +193,6 @@ export function DemoConversationInterface() {
         </div>
       </div>
       
-      {/* Bolt.new Badge */}
-      <BoltNewBadge />
     </div>
   );
 }
