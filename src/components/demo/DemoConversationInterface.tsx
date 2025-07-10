@@ -17,7 +17,7 @@ import { SavedConversation } from '../../services/conversationStorage';
 
 export function DemoConversationInterface() {
   const navigate = useNavigate();
-  const { isDemoMode, demoConversations, demoUser } = useDemo();
+  const { isDemoMode, demoConversations, demoUser, setDemoMode } = useDemo();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<SavedConversation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,10 +56,12 @@ export function DemoConversationInterface() {
     setSelectedSessionId(sessionId);
   };
 
-  if (!isDemoMode) {
-    navigate('/demo');
-    return null;
-  }
+  // Auto-enable demo mode for direct URL access
+  useEffect(() => {
+    if (!isDemoMode) {
+      setDemoMode(true);
+    }
+  }, [isDemoMode, setDemoMode]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

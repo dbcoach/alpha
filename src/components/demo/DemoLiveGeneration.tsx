@@ -22,7 +22,7 @@ const SAMPLE_PROMPTS = {
 export function DemoLiveGeneration() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isDemoMode, addDemoConversation, demoUser } = useDemo();
+  const { isDemoMode, addDemoConversation, demoUser, setDemoMode } = useDemo();
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [selectedDbType, setSelectedDbType] = useState('PostgreSQL');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,10 +36,12 @@ export function DemoLiveGeneration() {
     }
   }, [searchParams]);
 
-  if (!isDemoMode) {
-    navigate('/demo');
-    return null;
-  }
+  // Auto-enable demo mode for direct URL access
+  useEffect(() => {
+    if (!isDemoMode) {
+      setDemoMode(true);
+    }
+  }, [isDemoMode, setDemoMode]);
 
   const handleStartGeneration = () => {
     if (!selectedPrompt.trim()) return;
