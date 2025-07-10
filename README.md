@@ -1,4 +1,4 @@
-# 🎯 DB.Coach (Alpha) - AI-Powered Database Design Studio
+# 🎯 DB.Coach (Alpha) - AI-Powered Database Design
 
 <div align="center">
 
@@ -342,25 +342,25 @@ npm run type-check # TypeScript checking
 
 ## 🎯 **Roadmap**
 
-### **Q2 2025 - Enhanced AI**
+### **Q3 2025 - Enhanced AI**
 - [ ] LLM integration for even smarter designs
 - [ ] Custom business rules and constraints
 - [ ] Advanced performance profiling
 - [ ] Multi-language schema generation
 
-### **Q3 2025 - Collaboration**  
+### **Q4 2025 - Collaboration**  
 - [ ] Team workspaces and sharing
 - [ ] Real-time collaborative editing
 - [ ] Comment system and reviews
 - [ ] Integration with GitHub/GitLab
 
-### **Q4 2025 - Enterprise**
+### **Q1 2026 - Enterprise**
 - [ ] SSO and enterprise authentication  
 - [ ] Advanced role-based permissions
 - [ ] Audit logs and compliance reporting
 - [ ] On-premises deployment options
 
-### **Q1 2026 - Advanced Features**
+### **Q2 2026 - Advanced Features**
 - [ ] Visual schema editor with drag & drop
 - [ ] Database migrations and versioning
 - [ ] Performance monitoring integration
