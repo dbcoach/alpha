@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Play, Pause, Download, CheckCircle, Database } from 'lucide-react';
 import { streamlinedDBCoachService } from '../../services/streamlinedDBCoachService';
-import { unifiedVectorDBService } from '../../services/unifiedVectorDBService';
 
 interface VectorDBStreamingInterfaceProps {
   prompt: string;
@@ -12,7 +11,7 @@ interface VectorDBStreamingInterfaceProps {
 export function VectorDBStreamingInterface({ 
   prompt, 
   onComplete, 
-  onError 
+  onError
 }: VectorDBStreamingInterfaceProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'design' | 'sample_data' | 'implementation'>('design');
@@ -25,10 +24,11 @@ export function VectorDBStreamingInterface({
     setProgress(0);
 
     try {
-      // Use the new unified Vector DB service for cleaner execution
-      const stream = unifiedVectorDBService.streamVectorDBGeneration({
-        userRequirement: prompt,
-        outputType: phase
+      // Use improved streamlined service with enhanced Vector DB prompts
+      const stream = streamlinedDBCoachService.streamGeneration({
+        prompt,
+        dbType: 'VectorDB',
+        phase
       });
 
       let content = '';
@@ -50,7 +50,7 @@ export function VectorDBStreamingInterface({
           case 'complete':
             setResults(prev => ({
               ...prev,
-              [phase]: chunk.data.result
+              [phase]: chunk.data.content
             }));
             setProgress(100);
             break;

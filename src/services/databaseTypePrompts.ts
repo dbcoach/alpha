@@ -401,97 +401,159 @@ Focus on: Query optimization, document design, sharding strategies, and scalabil
 };
 
 export const VECTORDB_PROMPTS: PromptTemplate = {
-  systemPrompt: `# [ROLE]
-You are a world-class Vector Database Architect. Your mission is to analyze a user's requirements and design a technical specification for a vector database that is optimized for performance, accuracy, and cost-efficiency.
+  systemPrompt: `You are a world-class Vector Database Architect specializing in AI-native semantic search and production-ready implementations.
 
 ### CORE EXPERTISE:
-- Vector embeddings and high-dimensional search
-- ANN algorithms: HNSW, IVF, LSH  
-- Hybrid vector + metadata filtering
-- AI/ML pipeline integration
+- Vector embeddings and high-dimensional search optimization
+- ANN algorithms: HNSW, IVF, LSH with performance tuning
+- Hybrid vector + metadata filtering strategies
+- AI/ML pipeline integration and model serving
+- Production deployment and scaling considerations
 
 ### DESIGN APPROACH:
-- Focus on embedding strategy and dimensionality
-- Optimize index structures for performance
-- Balance search accuracy vs. speed
-- Ensure production-ready implementation`,
+- Focus on embedding strategy, dimensionality, and model selection with clear justifications
+- Optimize index structures for specific use case performance requirements
+- Balance search accuracy vs. speed with quantified trade-offs
+- Ensure production-ready implementation with comprehensive documentation
+- Provide technical justifications for every architectural decision`,
 
-  analysisPrompt: `# [INSTRUCTIONS]
-Based on the [USER REQUIREMENT] below, analyze the vector database requirements following the structured framework.
+  analysisPrompt: `Analyze this Vector database request with deep technical insight: {user_request}
 
-# [USER REQUIREMENT]
-{user_request}
+### COMPREHENSIVE ANALYSIS FRAMEWORK:
+1. **Embedding Strategy Analysis**: 
+   - Data types for vectorization (text/image/audio/multimodal)
+   - Model selection rationale (sentence-transformers, OpenAI, custom)
+   - Dimensionality considerations and memory implications
+   
+2. **Search Pattern Evaluation**: 
+   - Use case requirements (semantic search, QA, recommendation, RAG)
+   - Accuracy vs. performance trade-offs with specific metrics
+   - Expected query volume and latency requirements
+   
+3. **Index Architecture Design**: 
+   - Algorithm selection (HNSW vs IVF vs LSH) with performance justifications
+   - Distance metrics appropriateness (cosine, euclidean, dot product)
+   - Key parameters impact (efConstruction, maxConnections, nprobe)
+   
+4. **Hybrid Search Requirements**: 
+   - Metadata filtering complexity and performance impact
+   - Multi-modal search capabilities needed
+   - Integration with existing data infrastructure
 
-### ANALYSIS FRAMEWORK:
-1. **Embedding Strategy**: Data types, model selection, dimensionality
-2. **Search Patterns**: Use cases, accuracy vs. performance 
-3. **Index Architecture**: HNSW/IVF/LSH selection, distance metrics
-4. **Hybrid Search**: Metadata filtering requirements
+Provide detailed technical analysis with quantified recommendations and clear justifications for each decision.`,
 
-Provide concise analysis focused on key technical requirements.`,
+  designPrompt: `Based on the analysis: {user_request}
 
-  designPrompt: `# [INSTRUCTIONS]
-Based on the [USER REQUIREMENT] below, write a detailed vector database design specification. You must follow the [OUTPUT FORMAT] precisely. For every technical choice, you must provide a clear justification.
+Create a comprehensive Vector Database design specification following this structured format:
 
-# [USER REQUIREMENT]
-{user_request}
-
-# [OUTPUT FORMAT]
+## 🧮 Vector Database Design Specification
 
 ### 1. Executive Summary
-- Summarize the core purpose and design strategy of this database in 1-2 sentences that a non-technical person can understand.
+- Summarize the core purpose and design strategy in 1-2 sentences that both technical and non-technical stakeholders can understand
+- Highlight the key technical approach and expected benefits
 
 ### 2. Core Technical Specifications
 - **Embedding Model:**
-  - **Selected Model:** {e.g., \`sentence-transformers/all-MiniLM-L6-v2\`}
-  - **Justification:** {Explain why this model was chosen, considering the data type (text/image), language, and specific use case (semantic search, QA, etc.).}
+  - **Selected Model:** \`{specific model name with version}\`
+  - **Justification:** {Detailed explanation considering data type, language, performance, and use case requirements}
+  - **Dimensionality:** {dimension count with memory and performance implications}
+
 - **Index Strategy:**
-  - **Index Type:** {e.g., \`HNSW (Hierarchical Navigable Small World)\`}
-  - **Justification:** {Explain why this index is a good fit, considering the trade-offs between search speed, accuracy, recall, and memory usage for the specified use case.}
-  - **Key Parameters (to consider):** {Mention key parameters that will affect performance, e.g., \`efConstruction\`, \`maxConnections\` for HNSW.}
+  - **Index Type:** \`{HNSW/IVF/LSH with specific variant}\`
+  - **Justification:** {Explain choice considering search speed, accuracy, recall, memory usage, and scaling requirements}
+  - **Key Parameters:** {efConstruction, maxConnections, etc. with performance impact analysis}
+
 - **Similarity Metric:**
-  - **Selected Metric:** {e.g., \`Cosine Similarity\`}
-  - **Justification:** {Explain why this metric is the most appropriate for the chosen embedding model and the nature of the data's similarity.}
+  - **Selected Metric:** \`{cosine/euclidean/dot product}\`
+  - **Justification:** {Explain appropriateness for chosen embedding model and data similarity characteristics}
 
 ### 3. Schema Design
-- **Class / Collection Name:** \`{e.g., "RestaurantReview"}\`
-- **Properties / Fields:**
-  - **[Field 1]**
-    - **name:** \`content\`
-    - **dataType:** \`text\`
-    - **description:** The original text from the blog review.
-    - **vectorize:** \`True\` (This field's meaning will be encoded in the vector.)
-  - **[Additional Fields]**
-    - **name:** \`{field_name}\`
-    - **dataType:** \`{string|number|text}\`
-    - **description:** {field description}
-    - **vectorize:** \`{True|False}\``,
+- **Collection Name:** \`{descriptive collection name}\`
+- **Properties/Fields:**
+  \`\`\`python
+  # Vector schema with detailed field specifications
+  {
+    "field_name": {
+      "dataType": "text/number/boolean",
+      "description": "Detailed field purpose and usage",
+      "vectorize": true/false,  # With reasoning for vectorization decision
+      "index": true/false       # With indexing strategy rationale
+    }
+  }
+  \`\`\`
 
-  implementationPrompt: `# [ROLE]
-You are a Senior AI Engineer specializing in implementing vector search systems. Your task is to translate a vector database design specification into clean, production-ready code.
+### 4. Implementation Architecture
+\`\`\`python
+# Production-ready vector database setup
+{generate_complete_implementation_with_error_handling}
+\`\`\`
 
-# [INSTRUCTIONS]
-Based on the [VECTOR DATABASE DESIGN] provided below, write a Python script that implements the specified schema using the \`weaviate-client\` library. The script should be well-commented, easy to understand, and ready to run.
+### 5. Performance Optimization Strategy
+- Memory requirements and optimization techniques
+- Query performance expectations and monitoring
+- Scaling considerations and bottleneck prevention
 
-# [VECTOR DATABASE DESIGN]
-{analysis_results}
+Focus on production readiness, performance justifications, and comprehensive technical documentation.`,
 
-# [OUTPUT FORMAT]
-Provide a single Python code block that performs the following:
-1. Connects to a local Weaviate instance.
-2. Checks if the schema class already exists and deletes it to ensure a clean start.
-3. Creates a new class schema that exactly matches the Schema Design section.
-4. Includes comments explaining each major step and how it relates to the design choices.
-5. Includes a "Prerequisites" section in a comment block at the top.`,
+  implementationPrompt: `Generate production-ready Vector database implementation for: {analysis_results}
 
-  validationPrompt: `Validate Vector DB design for:
-- Embedding model appropriateness for use case
-- Index strategy efficiency for expected query patterns  
-- Schema design optimization
-- Production readiness and scalability`,
+Create a complete Python implementation with the following requirements:
 
-  responseFormat: `Structure as: 1. Executive Summary 2. Technical Specifications 3. Schema Design 4. Implementation Code`
+\`\`\`python
+# Prerequisites and Setup Instructions:
+# 1. Vector database instance running (Docker/Cloud setup instructions)
+# 2. Required libraries: pip install weaviate-client sentence-transformers
+# 3. Environment variables for API keys and connection strings
+# 4. Hardware requirements and optimization settings
+
+import weaviate
+import weaviate.classes as wvc
+from sentence_transformers import SentenceTransformer
+import json
+import logging
+from typing import List, Dict, Any, Optional
+
+# Configuration and connection setup with error handling
+{generate_robust_connection_setup}
+
+# Schema creation with comprehensive field definitions
+{generate_detailed_schema_with_validation}
+
+# Data ingestion pipeline with batch processing
+{generate_efficient_data_ingestion}
+
+# Search operations with performance optimization
+{generate_optimized_search_functions}
+
+# Monitoring and maintenance utilities
+{generate_monitoring_and_maintenance_tools}
+
+# Example usage and testing
+{generate_comprehensive_examples}
+\`\`\`
+
+Include comprehensive error handling, logging, performance monitoring, and production best practices.`,
+
+  validationPrompt: `Perform comprehensive validation of the Vector DB design:
+
+### Technical Validation Checklist:
+- **Embedding Quality**: Model appropriateness for use case, dimensionality efficiency
+- **Index Performance**: Algorithm selection optimization for query patterns
+- **Schema Design**: Field structure efficiency, vectorization decisions
+- **Production Readiness**: Error handling, monitoring, scaling capabilities
+- **Performance Metrics**: Expected latency, throughput, accuracy benchmarks
+- **Cost Optimization**: Resource utilization and operational efficiency
+
+Provide specific recommendations for improvements and potential issues to address.`,
+
+  responseFormat: `Structure response as:
+1. **Executive Summary** (business-friendly overview)
+2. **Technical Specifications** (detailed technical decisions with justifications)
+3. **Schema Design** (comprehensive field definitions)
+4. **Implementation Code** (production-ready with best practices)
+5. **Performance Strategy** (optimization and monitoring approach)`
 };
+
 
 export class DatabaseTypePromptEngine {
   static getPromptTemplate(dbType: string): PromptTemplate {
@@ -524,7 +586,8 @@ export class DatabaseTypePromptEngine {
     // Replace context variables
     Object.entries(context).forEach(([key, value]) => {
       const placeholder = `{${key}}`;
-      prompt = prompt.replace(new RegExp(placeholder, 'g'), JSON.stringify(value, null, 2));
+      const replacement = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      prompt = prompt.replace(new RegExp(placeholder, 'g'), replacement);
     });
     
     // Add paradigm-specific context

@@ -170,25 +170,76 @@ class StreamlinedDBCoachService {
   private buildSampleDataPrompt(designContent: string, dbType: string): string {
     switch (dbType) {
       case 'VectorDB':
-        return `Generate 5 realistic sample data records in JSON format for this vector database design:
+        return `You are a Data Generation Specialist creating high-quality, realistic sample data for vector databases.
 
+Using the vector database design below, generate 10 realistic and detailed sample data records that match the user's original intent. Format the output as a JSON array.
+
+**Vector Database Design:**
 ${designContent}
 
-Return only the JSON array with realistic, diverse sample data that matches the schema.`;
+**Requirements:**
+- Generate 10 diverse, realistic records
+- Ensure all fields match the schema specifications
+- Include varied content that demonstrates the use case
+- Use realistic values for metadata fields
+- Make content rich enough to generate meaningful embeddings
+
+**Output Format:**
+\`\`\`json
+[
+  {
+    // Sample record with all required fields
+    // Ensure content field has rich, meaningful text for vectorization
+    // Include realistic values for all metadata fields
+  }
+  // ... 9 more distinct and realistic records
+]
+\`\`\``;
 
       case 'NoSQL':
-        return `Generate 5 realistic sample documents in JSON format for this NoSQL database design:
+        return `You are a Data Generation Specialist creating realistic sample documents for NoSQL databases.
 
+Using the NoSQL database design below, generate 8 realistic and detailed sample documents that demonstrate the use case. Format as a JSON array.
+
+**NoSQL Database Design:**
 ${designContent}
 
-Return only the JSON array with realistic, diverse documents that match the schema.`;
+**Requirements:**
+- Generate 8 diverse, realistic documents
+- Include nested objects and arrays where appropriate
+- Demonstrate the document structure effectively
+- Use realistic field values that match the use case
+
+**Output Format:**
+\`\`\`json
+[
+  {
+    // Sample document matching the schema
+  }
+  // ... 7 more realistic documents
+]
+\`\`\``;
 
       case 'SQL':
-        return `Generate 5 realistic sample INSERT statements for this SQL database design:
+        return `You are a Data Generation Specialist creating realistic sample data for SQL databases.
 
+Using the SQL database design below, generate INSERT statements for 8 realistic records that demonstrate the use case.
+
+**SQL Database Design:**
 ${designContent}
 
-Return only the SQL INSERT statements with realistic, diverse data.`;
+**Requirements:**
+- Generate 8 diverse, realistic records
+- Respect all foreign key relationships
+- Include proper data types and constraints
+- Use realistic values that demonstrate the business case
+
+**Output Format:**
+\`\`\`sql
+-- Sample INSERT statements with realistic data
+INSERT INTO table_name (columns...) VALUES (values...);
+-- ... 7 more INSERT statements
+\`\`\``;
 
       default:
         return designContent;
