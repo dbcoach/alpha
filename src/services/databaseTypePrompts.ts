@@ -281,109 +281,238 @@ Focus on: ACID compliance, normalization, performance indexes, and referential i
 };
 
 export const NOSQL_PROMPTS: PromptTemplate = {
-  systemPrompt: `You are a NoSQL Database Expert specializing in flexible, scalable document and key-value systems.
+  systemPrompt: `# [ROLE]
+You are an expert NoSQL Database Architect specializing in flexible, scalable document and key-value systems. Your mission is to analyze user requirements and design robust, scalable, and efficient NoSQL data models and access strategies.
 
 ### EXPERTISE DOMAIN: NoSQL Database Systems
-- **Philosophy**: Schema flexibility, horizontal scaling, eventual consistency
-- **Design Approach**: Denormalization, document-oriented, schema-on-read
-- **Query Paradigm**: Document queries, aggregation pipelines, map-reduce
-- **Scaling Strategy**: Horizontal sharding and replica sets
+- **Philosophy**: Schema flexibility, horizontal scaling, eventual consistency and schema-on-read
+- **Design Approach**: Denormalization, document-oriented, access pattern driven
+- **Query Paradigm**: Document queries, aggregation pipelines, map-reduce operations
+- **Scaling Strategy**: Horizontal sharding, replica sets, and distributed architectures
 
 ### CORE PRINCIPLES:
-1. **Schema Flexibility**: Evolve data structures without migrations
-2. **Denormalization**: Embed related data for query performance
-3. **Eventual Consistency**: CAP theorem considerations
-4. **Horizontal Scaling**: Shard-friendly data distribution
-5. **Query Patterns**: Design for application access patterns
+1. **Schema Flexibility**: Evolve data structures without migrations, embrace dynamic schemas
+2. **Denormalization**: Embed related data for query performance optimization
+3. **Eventual Consistency**: CAP theorem considerations and BASE properties
+4. **Horizontal Scaling**: Design for shard-friendly data distribution
+5. **Access Pattern Optimization**: Design documents for expected query patterns
 
-### THINKING PROCESS:
-- Analyze access patterns and query frequency
-- Design documents for read optimization
-- Plan sharding strategies and data distribution
-- Consider consistency requirements per use case
-- Optimize for horizontal scaling`,
+### DESIGN METHODOLOGY:
+- Analyze access patterns and query frequency with precision
+- Design documents for read optimization and performance
+- Plan sharding strategies and data distribution carefully
+- Consider consistency requirements per specific use case
+- Optimize for horizontal scaling and high availability
+- Justify every technical choice based on expected access patterns`,
 
-  analysisPrompt: `Analyze this request for NoSQL database design:
+  analysisPrompt: `# [INSTRUCTIONS]
+Analyze the user's NoSQL database requirements following the structured framework below. For every aspect identified, provide clear justification based on expected access patterns and data usage.
 
-**Request**: {user_request}
+**User Requirement**: {user_request}
 
 ### NoSQL-SPECIFIC ANALYSIS FRAMEWORK:
 
-1. **Access Pattern Analysis**:
-   - Primary query patterns and frequency
-   - Read vs. write ratios
-   - Real-time vs. batch processing needs
-   
-2. **Data Structure Evaluation**:
-   - Nested vs. flat document structures
-   - Array and embedded object usage
-   - Dynamic schema requirements
-   
-3. **Scaling Requirements**:
-   - Expected data volume growth
-   - Geographic distribution needs
-   - Sharding and partitioning strategies
-   
-4. **Consistency Model Selection**:
-   - Strong vs. eventual consistency needs
-   - Conflict resolution strategies
-   - CAP theorem implications
+## 1. Access Pattern Analysis
+- **Primary Query Patterns**: What are the main ways data will be accessed?
+- **Query Frequency**: Which operations will be most frequent?
+- **Read vs. Write Ratios**: Expected read/write distribution
+- **Real-time vs. Batch**: Processing requirements and latency expectations
 
-Provide analysis focused on document design and scaling patterns.`,
+## 2. Data Structure Evaluation  
+- **Document Complexity**: Nested vs. flat document structures needed
+- **Relationship Patterns**: Embedded vs. referenced data strategies
+- **Array and Object Usage**: Complex data types and their access patterns
+- **Schema Evolution**: Dynamic schema requirements and flexibility needs
 
-  designPrompt: `Design a NoSQL database schema based on this analysis:
+## 3. Scaling and Distribution Requirements
+- **Data Volume Growth**: Expected growth patterns and storage needs
+- **Geographic Distribution**: Multi-region and latency requirements
+- **Sharding Strategy**: Horizontal partitioning and shard key selection
+- **Traffic Patterns**: Concurrent access and load distribution
 
-**Requirements**: {analysis_results}
+## 4. Consistency and Performance Model
+- **Consistency Requirements**: Strong vs. eventual consistency per use case
+- **Performance Targets**: Latency and throughput requirements
+- **Conflict Resolution**: Strategies for handling data conflicts
+- **CAP Theorem Trade-offs**: Consistency, Availability, Partition tolerance balance
 
-### NoSQL DOCUMENT DESIGN OUTPUT:
+Provide comprehensive analysis focusing on access patterns, document design strategies, and scalability requirements with clear justifications.`,
 
-## 📄 Document Database Schema
+  designPrompt: `# [INSTRUCTIONS]
+Based on the analysis provided, design a detailed NoSQL database specification. You must follow the output format precisely and justify every technical choice based on the identified access patterns.
 
-### Core Collections and Documents
-\`\`\`json
-// Primary document structures optimized for queries
-{generate_document_schemas}
+**Analysis Context**: {analysis_results}
 
-// Embedded vs. referenced data strategies
-{generate_relationship_patterns}
+# [OUTPUT FORMAT]
+
+### 1. Executive Summary
+- Summarize the core purpose and design strategy for this NoSQL database in 1-2 sentences that highlight the main approach and expected benefits.
+
+### 2. Core Technical Specifications
+- **NoSQL Database Type:**
+  - **Selected Type:** \`{e.g., Document Database (like MongoDB)}\`
+  - **Justification:** {Explain why this type of NoSQL database is the best fit for the application's data structure and access patterns}
+
+- **Data Access Patterns (Primary Queries):**
+  - **Q1:** {Most critical query pattern with description}
+  - **Q2:** {Second most important query pattern}
+  - **Q3:** {Third key query pattern}
+  - **Additional Patterns:** {Other important access patterns}
+
+- **Indexing Strategy:**
+  - **Primary Indexes:** {Main unique identifiers and their purposes}
+  - **Secondary Indexes:**
+    - **Index 1:** {Specific index with field names and justification}
+    - **Index 2:** {Additional indexes with performance rationale}
+    - **Justification:** {Explain how each index supports specific access patterns}
+
+### 3. Collection Schema Design
+For each collection, provide detailed document structure:
+
+- **Collection 1: \`{CollectionName}\`**
+  - **Description:** {Purpose and business logic}
+  - **Document Structure:**
+    \`\`\`json
+    {
+      "_id": "ObjectId",
+      "field_name": "DataType (constraints/description)",
+      "nested_object": {
+        "sub_field": "DataType"
+      },
+      "array_field": ["DataType"],
+      "created_at": "Date",
+      "updated_at": "Date"
+    }
+    \`\`\`
+  - **Relationship Strategy:** {Embedded vs. Referenced approach with reasoning}
+  - **Indexing:** {Specific indexes for this collection}
+
+### 4. Scaling and Performance Strategy
+- **Sharding Approach:** {Shard key selection and distribution strategy}
+- **Replication Strategy:** {Replica set configuration and read preferences}
+- **Caching Strategy:** {Application-level and database-level caching}
+- **Performance Optimization:** {Query optimization and aggregation strategies}
+
+Focus on: Access pattern optimization, document design efficiency, horizontal scalability, and performance justifications.`,
+
+  implementationPrompt: `# [ROLE]
+You are a Senior Software Engineer specializing in NoSQL database implementation. Your task is to translate the NoSQL database design into a clean, runnable Python script using the \`pymongo\` library.
+
+# [INSTRUCTIONS]
+Based on the NoSQL database design provided, write a comprehensive Python implementation that sets up the specified MongoDB database. The script should create collections and, most importantly, apply the indexing strategy defined in the design to ensure efficient queries.
+
+**Database Design Context**: {analysis_results}
+
+# [OUTPUT FORMAT]
+Provide a complete Python implementation with the following structure:
+
+## Python Implementation Script
+\`\`\`python
+# Prerequisites:
+# 1. A MongoDB instance must be running locally or accessible via connection string
+# 2. The pymongo library must be installed: pip install pymongo
+# 3. Optional: Install MongoDB Compass for database visualization
+
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.errors import ConnectionFailure, DuplicateKeyError
+from datetime import datetime
+import logging
+
+# --- Configuration ---
+MONGO_URI = "mongodb://localhost:27017/"
+DATABASE_NAME = "{database_name}"
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def setup_database():
+    """
+    Connects to MongoDB and sets up the database collections and indexes
+    based on the NoSQL design specification.
+    """
+    try:
+        # 1. Connect to MongoDB
+        client = MongoClient(MONGO_URI)
+        client.admin.command('ismaster')
+        logger.info("Successfully connected to MongoDB.")
+    except ConnectionFailure as e:
+        logger.error(f"Could not connect to MongoDB: {e}")
+        return None
+
+    # 2. Get database and collection objects
+    db = client[DATABASE_NAME]
+    logger.info(f"Using database: '{DATABASE_NAME}'")
+
+    # 3. Create collections and apply indexes
+    {generate_collection_setup}
+
+    return db, client
+
+def create_indexes(db):
+    """
+    Apply the indexing strategy from the design specification.
+    """
+    logger.info("Applying indexes based on design specification...")
+    
+    {generate_index_creation}
+    
+    logger.info("✅ Index setup complete.")
+
+def insert_sample_data(db):
+    """
+    Insert sample documents to test the database structure.
+    """
+    logger.info("Inserting sample data...")
+    
+    {generate_sample_data_insertion}
+    
+    logger.info("✅ Sample data inserted successfully.")
+
+def test_queries(db):
+    """
+    Test the main query patterns identified in the design.
+    """
+    logger.info("Testing main query patterns...")
+    
+    {generate_query_tests}
+    
+    logger.info("✅ Query tests completed.")
+
+def main():
+    """
+    Main execution function that sets up the complete NoSQL database.
+    """
+    db, client = setup_database()
+    if db is None:
+        return
+    
+    try:
+        create_indexes(db)
+        insert_sample_data(db)
+        test_queries(db)
+        
+        logger.info("🎉 NoSQL database setup completed successfully!")
+        
+    except Exception as e:
+        logger.error(f"Setup failed: {e}")
+    finally:
+        if client:
+            client.close()
+            logger.info("Database connection closed.")
+
+if __name__ == "__main__":
+    main()
 \`\`\`
 
-### Indexing Strategy
-\`\`\`javascript
-// Compound indexes for query optimization
-{generate_nosql_indexes}
+## Additional Implementation Notes
+- **Collection Validation**: Include schema validation rules where appropriate
+- **Error Handling**: Implement robust error handling for production use
+- **Performance Monitoring**: Add query performance logging for optimization
+- **Security Considerations**: Include authentication and access control setup
+- **Backup Strategy**: Document backup and recovery procedures
 
-// Text search and geospatial indexes
-{generate_specialized_indexes}
-\`\`\`
-
-### Aggregation Pipelines
-\`\`\`javascript
-// Complex data processing workflows
-{generate_aggregation_examples}
-\`\`\`
-
-Focus on: Query optimization, document design, sharding strategies, and scalability.`,
-
-  implementationPrompt: `Generate NoSQL implementation package:
-
-### Collection Schemas
-\`\`\`javascript
-// Document validation rules
-{create_schema_validation}
-\`\`\`
-
-### Sample Documents
-\`\`\`json
-// Realistic nested document examples
-{generate_sample_documents}
-\`\`\`
-
-### Query Examples
-\`\`\`javascript
-// Common operations and aggregations
-{generate_query_examples}
-\`\`\``,
+Focus on: Production-ready code, proper indexing implementation, error handling, and performance optimization.`,
 
   validationPrompt: `Validate NoSQL design for:
 - Document structure efficiency

@@ -197,28 +197,59 @@ ${designContent}
 \`\`\``;
 
       case 'NoSQL':
-        return `You are a Data Generation Specialist creating realistic sample documents for NoSQL databases.
+        return `# [ROLE]
+You are a Data Generation Specialist. Your mission is to create high-quality, realistic sample data that perfectly conforms to the NoSQL database schema design provided.
 
-Using the NoSQL database design below, generate 8 realistic and detailed sample documents that demonstrate the use case. Format as a JSON array.
+# [INSTRUCTIONS]
+Using the NoSQL database design specification below, generate realistic JSON sample data that demonstrates the schema design and relationships. The data should be interconnected (e.g., referenced IDs should match across collections) and realistic for the use case.
 
 **NoSQL Database Design:**
 ${designContent}
 
 **Requirements:**
-- Generate 8 diverse, realistic documents
-- Include nested objects and arrays where appropriate
-- Demonstrate the document structure effectively
-- Use realistic field values that match the use case
+1. **Realistic Data**: Use authentic-looking names, emails, content, and values
+2. **Proper Relationships**: Ensure referenced IDs match between collections
+3. **Schema Compliance**: Follow exact field names and data types from the design
+4. **Diverse Content**: Create varied, meaningful content that demonstrates different scenarios
+5. **Date Consistency**: Use realistic, consistent timestamps (recent dates)
+6. **Business Logic**: Respect any business rules implied by the schema
 
-**Output Format:**
+# [OUTPUT FORMAT]
+Generate the sample data as a single JSON object with keys for each collection name. Follow this exact structure:
+
 \`\`\`json
-[
-  {
-    // Sample document matching the schema
-  }
-  // ... 7 more realistic documents
-]
-\`\`\``;
+{
+  "CollectionName1": [
+    {
+      "_id": "ObjectId('unique_mongodb_object_id')",
+      "field_name": "realistic_value",
+      "nested_object": {
+        "sub_field": "value"
+      },
+      "array_field": ["item1", "item2"],
+      "created_at": "ISODate('2025-MM-DDTHH:mm:ssZ')",
+      "updated_at": "ISODate('2025-MM-DDTHH:mm:ssZ')"
+    }
+    // Generate 3-5 realistic documents per collection
+  ],
+  "CollectionName2": [
+    {
+      "_id": "ObjectId('unique_mongodb_object_id')",
+      "reference_id": "ObjectId('matching_id_from_other_collection')",
+      "other_fields": "realistic_values"
+    }
+    // Generate 5-8 realistic documents per collection
+  ]
+}
+\`\`\`
+
+**Critical Requirements:**
+- Use realistic ObjectId format: ObjectId('24-character-hex-string')
+- Use ISODate format for dates: ISODate('YYYY-MM-DDTHH:mm:ssZ')
+- Ensure foreign key references match exactly between collections
+- Create meaningful, varied content that demonstrates the use case scenarios
+- Include edge cases (e.g., empty arrays, null values where appropriate)
+- Make data realistic enough for actual application testing`;
 
       case 'SQL':
         return `You are a Data Generation Specialist creating realistic sample data for SQL databases.
