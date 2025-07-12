@@ -401,7 +401,8 @@ Focus on: Query optimization, document design, sharding strategies, and scalabil
 };
 
 export const VECTORDB_PROMPTS: PromptTemplate = {
-  systemPrompt: `You are a Vector Database Expert specializing in AI-native semantic search.
+  systemPrompt: `# [ROLE]
+You are a world-class Vector Database Architect. Your mission is to analyze a user's requirements and design a technical specification for a vector database that is optimized for performance, accuracy, and cost-efficiency.
 
 ### CORE EXPERTISE:
 - Vector embeddings and high-dimensional search
@@ -415,7 +416,11 @@ export const VECTORDB_PROMPTS: PromptTemplate = {
 - Balance search accuracy vs. speed
 - Ensure production-ready implementation`,
 
-  analysisPrompt: `Analyze this Vector database request: {user_request}
+  analysisPrompt: `# [INSTRUCTIONS]
+Based on the [USER REQUIREMENT] below, analyze the vector database requirements following the structured framework.
+
+# [USER REQUIREMENT]
+{user_request}
 
 ### ANALYSIS FRAMEWORK:
 1. **Embedding Strategy**: Data types, model selection, dimensionality
@@ -425,46 +430,67 @@ export const VECTORDB_PROMPTS: PromptTemplate = {
 
 Provide concise analysis focused on key technical requirements.`,
 
-  designPrompt: `Design Vector database system: {analysis_results}
+  designPrompt: `# [INSTRUCTIONS]
+Based on the [USER REQUIREMENT] below, write a detailed vector database design specification. You must follow the [OUTPUT FORMAT] precisely. For every technical choice, you must provide a clear justification.
 
-## 🧮 Vector Database Design
+# [USER REQUIREMENT]
+{user_request}
 
-### Vector Schema
-\`\`\`python
-# Collection setup with embeddings and metadata
-{generate_vector_schema}
-\`\`\`
+# [OUTPUT FORMAT]
 
-### Index Configuration  
-\`\`\`python
-# HNSW/IVF index with optimized parameters
-{generate_index_config}
-\`\`\`
+### 1. Executive Summary
+- Summarize the core purpose and design strategy of this database in 1-2 sentences that a non-technical person can understand.
 
-### Search Operations
-\`\`\`python
-# Similarity search and hybrid filtering
-{generate_search_examples}
-\`\`\`
+### 2. Core Technical Specifications
+- **Embedding Model:**
+  - **Selected Model:** {e.g., \`sentence-transformers/all-MiniLM-L6-v2\`}
+  - **Justification:** {Explain why this model was chosen, considering the data type (text/image), language, and specific use case (semantic search, QA, etc.).}
+- **Index Strategy:**
+  - **Index Type:** {e.g., \`HNSW (Hierarchical Navigable Small World)\`}
+  - **Justification:** {Explain why this index is a good fit, considering the trade-offs between search speed, accuracy, recall, and memory usage for the specified use case.}
+  - **Key Parameters (to consider):** {Mention key parameters that will affect performance, e.g., \`efConstruction\`, \`maxConnections\` for HNSW.}
+- **Similarity Metric:**
+  - **Selected Metric:** {e.g., \`Cosine Similarity\`}
+  - **Justification:** {Explain why this metric is the most appropriate for the chosen embedding model and the nature of the data's similarity.}
 
-Focus on production-ready implementation with optimal performance.`,
+### 3. Schema Design
+- **Class / Collection Name:** \`{e.g., "RestaurantReview"}\`
+- **Properties / Fields:**
+  - **[Field 1]**
+    - **name:** \`content\`
+    - **dataType:** \`text\`
+    - **description:** The original text from the blog review.
+    - **vectorize:** \`True\` (This field's meaning will be encoded in the vector.)
+  - **[Additional Fields]**
+    - **name:** \`{field_name}\`
+    - **dataType:** \`{string|number|text}\`
+    - **description:** {field description}
+    - **vectorize:** \`{True|False}\``,
 
-  implementationPrompt: `Generate Vector database implementation:
+  implementationPrompt: `# [ROLE]
+You are a Senior AI Engineer specializing in implementing vector search systems. Your task is to translate a vector database design specification into clean, production-ready code.
 
-\`\`\`python
-# Vector collections with indexing
-{create_vector_collections}
+# [INSTRUCTIONS]
+Based on the [VECTOR DATABASE DESIGN] provided below, write a Python script that implements the specified schema using the \`weaviate-client\` library. The script should be well-commented, easy to understand, and ready to run.
 
-# Sample data with embeddings  
-{generate_sample_vectors}
+# [VECTOR DATABASE DESIGN]
+{analysis_results}
 
-# Search API endpoints
-{generate_search_apis}
-\`\`\``,
+# [OUTPUT FORMAT]
+Provide a single Python code block that performs the following:
+1. Connects to a local Weaviate instance.
+2. Checks if the schema class already exists and deletes it to ensure a clean start.
+3. Creates a new class schema that exactly matches the Schema Design section.
+4. Includes comments explaining each major step and how it relates to the design choices.
+5. Includes a "Prerequisites" section in a comment block at the top.`,
 
-  validationPrompt: `Validate Vector DB for embedding quality, search accuracy, index performance, and scalability.`,
+  validationPrompt: `Validate Vector DB design for:
+- Embedding model appropriateness for use case
+- Index strategy efficiency for expected query patterns  
+- Schema design optimization
+- Production readiness and scalability`,
 
-  responseFormat: `Structure as: 1. Schema 2. Embeddings 3. Indexing 4. Search 5. Integration`
+  responseFormat: `Structure as: 1. Executive Summary 2. Technical Specifications 3. Schema Design 4. Implementation Code`
 };
 
 export class DatabaseTypePromptEngine {
