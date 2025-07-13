@@ -7,27 +7,19 @@ const AnalysisTab: React.FC = () => {
   const { getStepContent } = useGeneration();
   const content = getStepContent('analysis');
 
-  if (!content) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-400">Requirements analysis not yet generated</p>
-        </div>
-      </div>
-    );
-  }
-
-  const parseAnalysisContent = (content: string) => {
+  const parseAnalysisContent = (raw: string) => {
     try {
-      return JSON.parse(content);
+      return JSON.parse(raw);
     } catch {
-      return { rawContent: content };
+      return { rawContent: raw };
     }
   };
 
-  const analysis = parseAnalysisContent(content.content);
-  const isStructured = !analysis.rawContent;
+  const analysis = useMemo(
+    () => (content ? parseAnalysisContent(content.content) : null),
+    [content]
+  );
+  const isStructured = analysis ? !analysis.rawContent : false;
 
   // Generate visualization metrics from analysis
   const requirementMetrics = useMemo(() => {
@@ -87,7 +79,7 @@ const AnalysisTab: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (!isStructured) {
+  if (!analysis || !isStructured) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex-shrink-0 p-6 border-b border-slate-700/50 bg-slate-800/20">
@@ -108,9 +100,13 @@ const AnalysisTab: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 overflow-auto scrollbar-elegant p-6">
-          <pre className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
-            {analysis.rawContent}
-          </pre>
+          {analysis ? (
+            <pre className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
+              {analysis.rawContent}
+            </pre>
+          ) : (
+            <div className="text-slate-400">Requirements analysis not yet generated</div>
+          )}
         </div>
       </div>
     );

@@ -776,7 +776,7 @@ ${tables.map(table => `- **${table.name}**: ${table.columns.length} columns`).jo
           contentType = 'text/html';
           filename += '.html'; // User can convert to PDF via browser
           break;
-        case 'copy':
+        case 'copy': {
           const success = await copyToClipboard(content);
           if (success) {
             // Show success notification
@@ -784,6 +784,7 @@ ${tables.map(table => `- **${table.name}**: ${table.columns.length} columns`).jo
           }
           setExportLoading(false);
           return;
+        }
         default:
           contentType = 'text/plain';
           filename += '.txt';

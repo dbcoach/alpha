@@ -815,7 +815,7 @@ export function EnhancedStreamingInterface({
     }
     
     // Remove reasoning patterns but preserve the core database content
-    let cleanContent = content
+    const cleanContent = content
       // Remove meta analysis headers but keep the content
       .replace(/^#{1,3}\s*🎯.*?Requirements Analysis.*?\n/gmi, '')
       .replace(/^\*\*Domain\*\*:.*?\n/gm, '')
