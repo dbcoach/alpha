@@ -315,6 +315,11 @@ class ApiKeyService {
       // Check rate limiting
       const rateLimitOk = await this.checkRateLimit(matchedKey.id);
       if (!rateLimitOk) {
+        await this.logSecurityEvent(matchedKey.user_id, 'rate_limit_violation', {
+          key_id: matchedKey.id,
+          client_ip: clientIp,
+          endpoint
+        });
         return { isValid: false, error: 'Rate limit exceeded', rateLimited: true };
       }
 
@@ -458,6 +463,12 @@ class ApiKeyService {
         .limit(1)
         .maybeSingle();
 
+      const { data: rateLimitLogs, error: rateError } = await supabase
+        .from('security_audit_logs')
+        .select('id')
+        .eq('event_type', 'rate_limit_violation')
+        .contains('metadata', { key_id: keyId });
+
       if (totalError || todayError) {
         console.error('Error fetching usage stats:', totalError || todayError);
       }
@@ -467,7 +478,7 @@ class ApiKeyService {
         requests_today: todayUsage?.length || 0,
         last_request_ip: lastRequest?.client_ip,
         last_request_at: lastRequest?.created_at,
-        rate_limit_hits: 0 // TODO: Implement rate limit hit tracking
+        rate_limit_hits: rateLimitLogs?.length || 0
       };
     } catch (error) {
       console.error('Error fetching API key usage stats:', error);
