@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --loader ts-node/esm
+#!/usr/bin/env -S TS_NODE_PROJECT=tsconfig.node.json node --loader ts-node/esm
 
 /**
  * Test script for Enhanced Standard Mode functionality
@@ -6,8 +6,8 @@
  * for SQL, NoSQL, and Vector DB types respectively.
  */
 
-// Import the prompt engine directly from TypeScript source
-const { DatabaseTypePromptEngine } = await import('./dist/services/databaseTypePrompts.js');
+// Use ts-node to load the TypeScript sources directly
+const { DatabaseTypePromptEngine } = await import('./src/services/databaseTypePrompts.ts');
 
 async function testEnhancedStandardMode() {
   console.log('🧪 Testing Enhanced Standard Mode Database-Type-Specific Optimization');
