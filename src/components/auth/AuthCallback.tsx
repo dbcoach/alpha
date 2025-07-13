@@ -36,7 +36,8 @@ const AuthCallback: React.FC = () => {
             setMessage('Authentication failed. Please try again.');
           }
         }, 1000);
-      } catch (err) {
+      } catch (error) {
+        console.error('Auth callback error:', error);
         setStatus('error');
         setMessage('An unexpected error occurred during authentication');
       }

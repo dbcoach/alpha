@@ -459,15 +459,30 @@ class SampleDataGenerator {
       case 'json':
         return JSON.stringify(projects, null, 2);
         
-      case 'csv':
+      case 'csv': {
         if (projects.length === 0) return '';
-        
+
         const headers = [
-          'ID', 'Name', 'Description', 'Domain', 'Scale', 'Complexity', 'Database Type',
-          'Table Count', 'Estimated Users', 'Status', 'Priority', 'Owner Name', 'Owner Email',
-          'Owner Company', 'Overall Quality Score', 'Created At', 'Updated At', 'Tags'
+          'ID',
+          'Name',
+          'Description',
+          'Domain',
+          'Scale',
+          'Complexity',
+          'Database Type',
+          'Table Count',
+          'Estimated Users',
+          'Status',
+          'Priority',
+          'Owner Name',
+          'Owner Email',
+          'Owner Company',
+          'Overall Quality Score',
+          'Created At',
+          'Updated At',
+          'Tags'
         ];
-        
+
         const rows = projects.map(project => [
           project.id,
           `"${project.name.replace(/"/g, '""')}"`,
@@ -488,8 +503,9 @@ class SampleDataGenerator {
           project.updatedAt,
           `"${project.tags.join(', ')}"`
         ]);
-        
+
         return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      }
         
       default:
         throw new Error(`Unsupported export format: ${format}`);
