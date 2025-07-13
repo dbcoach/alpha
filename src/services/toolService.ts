@@ -1,10 +1,8 @@
-import { supabase } from '../lib/supabase';
-
 export interface Tool {
   name: string;
   description: string;
-  parameters: Record<string, any>;
-  execute: (params: any) => Promise<string>;
+  parameters: Record<string, unknown>;
+  execute: (params: Record<string, unknown>) => Promise<string>;
   safetyLevel: 'READ_ONLY' | 'SAFE_MODIFY' | 'DESTRUCTIVE';
 }
 
@@ -19,14 +17,14 @@ export class ToolService {
     this.tools.set(tool.name, tool);
   }
 
-  async executeTool(name: string, params: any, safetyLevel: string): Promise<string> {
+  async executeTool(name: string, params: Record<string, unknown>, safetyLevel: string): Promise<string> {
     const tool = this.tools.get(name);
     if (!tool) {
       throw new Error(`Tool '${name}' not found`);
     }
 
     // Safety check
-    if (safetyLevel === 'READ_only' && tool.safetyLevel !== 'READ_only') {
+    if (safetyLevel === 'READ_ONLY' && tool.safetyLevel !== 'READ_ONLY') {
       return `Error: Tool '${name}' not allowed in read-only mode`;
     }
 
