@@ -97,7 +97,15 @@ async function validateEnhancement() {
   console.log('-'.repeat(50));
   testResults.total++;
 
-  if (fs.existsSync('./dist/assets/index-DTfiNj1l.js')) {
+  const assetsDir = path.join('dist', 'assets');
+  let jsArtifactsExist = false;
+
+  if (fs.existsSync(assetsDir)) {
+    const files = fs.readdirSync(assetsDir);
+    jsArtifactsExist = files.some((file) => file.endsWith('.js'));
+  }
+
+  if (jsArtifactsExist) {
     console.log('✅ Build artifacts exist - compilation successful');
     console.log('✅ TypeScript Compilation: PASSED');
     testResults.passed++;
