@@ -7,7 +7,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { apiKeyService, ApiKey, CreateApiKeyRequest } from '../services/apiKeyService';
 
 // Mock Supabase
-vi.mock('../lib/supabase.ts', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn().mockReturnThis(),
