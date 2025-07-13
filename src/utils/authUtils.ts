@@ -54,10 +54,13 @@ export const clearAuthSession = async (): Promise<void> => {
 /**
  * Check if the current error is an auth token error
  */
-export const isAuthTokenError = (error: any): boolean => {
+export const isAuthTokenError = (error: unknown): boolean => {
   if (!error) return false;
-  
-  const errorMessage = error.message || error.toString() || '';
+
+  const errorMessage =
+    (typeof error === 'object' && 'message' in error && typeof (error as { message?: string }).message === 'string')
+      ? (error as { message?: string }).message
+      : error.toString();
   
   return errorMessage.includes('refresh_token_not_found') ||
          errorMessage.includes('Invalid Refresh Token') ||
@@ -69,7 +72,7 @@ export const isAuthTokenError = (error: any): boolean => {
 /**
  * Handle auth errors gracefully
  */
-export const handleAuthError = async (error: any): Promise<boolean> => {
+export const handleAuthError = async (error: unknown): Promise<boolean> => {
   if (isAuthTokenError(error)) {
     console.log('Detected auth token error, clearing session...');
     await clearAuthSession();
@@ -82,7 +85,24 @@ export const handleAuthError = async (error: any): Promise<boolean> => {
  * Add to window for debugging purposes
  */
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  (window as any).clearAuthSession = clearAuthSession;
-  (window as any).isAuthTokenError = isAuthTokenError;
-  console.log('Auth utilities available on window: clearAuthSession(), isAuthTokenError()');
+  (window as Window & typeof globalThis & {
+    clearAuthSession: typeof clearAuthSession;
+    isAuthTokenError: typeof isAuthTokenError;
+  }).clearAuthSession = clearAuthSession;
+
+  (window as Window & typeof globalThis & {
+    clearAuthSession: typeof clearAuthSession;
+    isAuthTokenError: typeof isAuthTokenError;
+  }).isAuthTokenError = isAuthTokenError;
+
+  console.log(
+    'Auth utilities available on window: clearAuthSession(), isAuthTokenError()'
+  );
+}
+
+declare global {
+  interface Window {
+    clearAuthSession: typeof clearAuthSession;
+    isAuthTokenError: typeof isAuthTokenError;
+  }
 }
