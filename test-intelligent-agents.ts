@@ -3,7 +3,7 @@
  * Run this to see the difference between old and new responses
  */
 
-import { intelligentAgentDemo } from './src/demo/intelligentAgentDemo';
+import { intelligentAgentDemo } from './src/demo/intelligentAgentDemo.ts';
 
 async function quickTest() {
   console.log('🧪 Quick Test of Intelligent AI Agents\n');
@@ -24,3 +24,6 @@ async function quickTest() {
 
 // Run the test
 quickTest();
+
+// Ensure this file is treated as an ES module
+export {};
