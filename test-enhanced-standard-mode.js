@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node --loader ts-node/esm
 
 /**
  * Test script for Enhanced Standard Mode functionality
@@ -6,12 +6,12 @@
  * for SQL, NoSQL, and Vector DB types respectively.
  */
 
-// Import the GeminiService class directly from source
-const { GeminiService } = require('./src/services/geminiService.ts');
+// Import the prompt engine directly from TypeScript source
+const { DatabaseTypePromptEngine } = await import('./dist/services/databaseTypePrompts.js');
 
 async function testEnhancedStandardMode() {
   console.log('🧪 Testing Enhanced Standard Mode Database-Type-Specific Optimization');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   const testCases = [
     {
@@ -39,20 +39,19 @@ async function testEnhancedStandardMode() {
     console.log('-'.repeat(50));
     
     try {
-      // Test prompt building for database type  
-      const service = new GeminiService();
-      const guidance = service.getDatabaseSpecificGuidance(testCase.dbType);
+      // Test prompt building for database type
+      const guidance = DatabaseTypePromptEngine.getPromptTemplate(testCase.dbType);
       
       console.log('✅ Database-specific guidance generated');
       console.log(`   System Prompt Length: ${guidance.systemPrompt.length} chars`);
-      console.log(`   Design Instructions: ${guidance.designInstructions.length} chars`);
-      console.log(`   Sample Data Format: ${guidance.sampleDataFormat.length} chars`);
+      console.log(`   Design Prompt Length: ${guidance.designPrompt.length} chars`);
+      console.log(`   Response Format Length: ${guidance.responseFormat.length} chars`);
       
       // Check for expected features in the guidance
       let foundFeatures = 0;
       for (const feature of testCase.expectedFeatures) {
         if (guidance.systemPrompt.toLowerCase().includes(feature.toLowerCase()) ||
-            guidance.designInstructions.toLowerCase().includes(feature.toLowerCase())) {
+            guidance.designPrompt.toLowerCase().includes(feature.toLowerCase())) {
           foundFeatures++;
         }
       }
@@ -72,7 +71,7 @@ async function testEnhancedStandardMode() {
   }
 
   console.log('\n🎯 Enhanced Standard Mode Test Summary');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log('✅ TypeScript compilation: PASSED');
   console.log('✅ Database-type-specific prompts: IMPLEMENTED'); 
   console.log('✅ SQL enterprise features: ADDED');
@@ -93,3 +92,4 @@ async function testEnhancedStandardMode() {
 
 // Run the test
 testEnhancedStandardMode().catch(console.error);
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node --loader ts-node/esm
 
 /**
  * Test script for Enhanced Standard Mode functionality
@@ -6,7 +6,7 @@
  * for SQL, NoSQL, and Vector DB types respectively.
  */
 
-import { DatabaseTypePromptEngine } from './src/services/databaseTypePrompts.js';
+const { DatabaseTypePromptEngine } = await import('./dist/services/databaseTypePrompts.js');
 
 async function testEnhancedStandardMode() {
   console.log('🧪 Testing Enhanced Standard Mode Database-Type-Specific Optimization');
@@ -43,12 +43,12 @@ async function testEnhancedStandardMode() {
       
       console.log('✅ Database-specific prompt template generated');
       console.log(`   System Prompt Length: ${promptTemplate.systemPrompt.length} chars`);
-      console.log(`   Design Instructions: ${promptTemplate.designInstructions.length} chars`);
-      console.log(`   Sample Data Format: ${promptTemplate.sampleDataFormat.length} chars`);
+      console.log(`   Design Prompt Length: ${promptTemplate.designPrompt.length} chars`);
+      console.log(`   Response Format Length: ${promptTemplate.responseFormat.length} chars`);
       
       // Check for expected features in the prompt template
       let foundFeatures = 0;
-      const fullPrompt = promptTemplate.systemPrompt + promptTemplate.designInstructions + promptTemplate.sampleDataFormat;
+      const fullPrompt = promptTemplate.systemPrompt + promptTemplate.designPrompt + promptTemplate.responseFormat;
       
       for (const feature of testCase.expectedFeatures) {
         if (fullPrompt.toLowerCase().includes(feature.toLowerCase())) {
@@ -93,3 +93,4 @@ async function testEnhancedStandardMode() {
 
 // Run the test
 testEnhancedStandardMode().catch(console.error);
+
