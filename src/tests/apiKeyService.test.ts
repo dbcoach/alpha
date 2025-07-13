@@ -7,7 +7,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { apiKeyService, ApiKey, CreateApiKeyRequest } from '../services/apiKeyService';
 
 // Mock Supabase
-vi.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase.ts', () => ({
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn().mockReturnThis(),
@@ -23,6 +23,8 @@ vi.mock('../lib/supabase', () => ({
     rpc: vi.fn()
   }
 }));
+
+const getSupabase = async () => (await import('../lib/supabase.ts')).supabase;
 
 describe('ApiKeyService', () => {
   const mockUserId = 'user-123';
@@ -70,7 +72,8 @@ describe('ApiKeyService', () => {
         error: null
       });
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         insert: mockSupabaseInsert,
         select: vi.fn().mockReturnThis(),
         single: vi.fn()
@@ -108,7 +111,8 @@ describe('ApiKeyService', () => {
           updated_at: new Date().toISOString()
         };
 
-        vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+        const supabase = await getSupabase();
+        vi.mocked(supabase.from).mockReturnValue({
           insert: vi.fn().mockResolvedValue({ data: mockResponse, error: null }),
           select: vi.fn().mockReturnThis(),
           single: vi.fn()
@@ -129,7 +133,8 @@ describe('ApiKeyService', () => {
       };
 
       // Mock database error
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         insert: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'Database error' }
@@ -160,7 +165,8 @@ describe('ApiKeyService', () => {
       };
 
       // Mock database response
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: [mockApiKey],
@@ -203,7 +209,8 @@ describe('ApiKeyService', () => {
         permissions: ['read', 'write']
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: [expiredApiKey],
@@ -233,7 +240,8 @@ describe('ApiKeyService', () => {
         permissions: ['read', 'write']
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: [restrictedApiKey],
@@ -260,7 +268,8 @@ describe('ApiKeyService', () => {
         created_at: new Date().toISOString()
       }));
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             gte: vi.fn().mockResolvedValue({
@@ -286,7 +295,8 @@ describe('ApiKeyService', () => {
         created_at: new Date().toISOString()
       }));
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             gte: vi.fn().mockResolvedValue({
@@ -306,7 +316,8 @@ describe('ApiKeyService', () => {
     test('should rotate API key successfully', async () => {
       const keyId = 'key-123';
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: { id: keyId },
@@ -324,7 +335,8 @@ describe('ApiKeyService', () => {
     test('should revoke API key successfully', async () => {
       const keyId = 'key-123';
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         delete: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: { id: keyId },
@@ -345,7 +357,8 @@ describe('ApiKeyService', () => {
         is_active: false
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: { id: keyId, ...updates },
@@ -380,7 +393,8 @@ describe('ApiKeyService', () => {
         updated_at: new Date().toISOString()
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         insert: vi.fn().mockResolvedValue({ data: mockResponse, error: null }),
         select: vi.fn().mockReturnThis(),
         single: vi.fn()
@@ -415,7 +429,8 @@ describe('ApiKeyService', () => {
         updated_at: new Date().toISOString()
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         insert: vi.fn().mockResolvedValue({ data: mockResponse, error: null }),
         select: vi.fn().mockReturnThis(),
         single: vi.fn()
@@ -439,7 +454,8 @@ describe('ApiKeyService', () => {
       };
 
       // Mock network error
-      vi.mocked(require('../lib/supabase').supabase.from).mockImplementation(() => {
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockImplementation(() => {
         throw new Error('Network error');
       });
 
@@ -453,7 +469,8 @@ describe('ApiKeyService', () => {
       const endpoint = '/api/test';
 
       // Mock service error
-      vi.mocked(require('../lib/supabase').supabase.from).mockImplementation(() => {
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockImplementation(() => {
         throw new Error('Service unavailable');
       });
 
@@ -480,7 +497,8 @@ describe('ApiKeyService', () => {
         permissions: ['read']
       };
 
-      vi.mocked(require('../lib/supabase').supabase.from).mockReturnValue({
+      const supabase = await getSupabase();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: [mockApiKey],
