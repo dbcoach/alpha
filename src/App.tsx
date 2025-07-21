@@ -11,6 +11,12 @@ import { UnifiedProjectWorkspace } from './components/projects/UnifiedProjectWor
 import { DemoLandingPage } from './components/demo/DemoLandingPage';
 import { DemoLiveGeneration } from './components/demo/DemoLiveGeneration';
 import { DemoConversationInterface } from './components/demo/DemoConversationInterface';
+import { SignInPage } from './components/auth/SignInPage';
+import { SignUpPage } from './components/auth/SignUpPage';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
+import { CheckoutPage } from './components/checkout/CheckoutPage';
+import { CheckoutSuccessPage } from './components/checkout/CheckoutSuccessPage';
+import { CheckoutCancelPage } from './components/checkout/CheckoutCancelPage';
 import { GenerationProvider } from './context/GenerationContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { DemoProvider } from './contexts/DemoContext';
@@ -30,6 +36,16 @@ function AppContent() {
         <Route path="/streaming-legacy" element={<LiveStreamingPage />} />
         <Route path="/unified-workspace" element={<UnifiedProjectWorkspace />} />
         <Route path="/settings/*" element={<Settings />} />
+        
+        {/* Auth Routes */}
+        <Route path="/auth/signin" element={<SignInPage />} />
+        <Route path="/auth/signup" element={<SignUpPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        
+        {/* Checkout Routes */}
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+        <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
         
         {/* Demo Routes */}
         <Route path="/demo" element={<DemoLandingPage />} />

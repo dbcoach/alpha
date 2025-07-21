@@ -3,12 +3,11 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Settings, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import AuthModal from './AuthModal';
+import { SubscriptionStatus } from '../subscription/SubscriptionStatus';
 
 const AuthButton: React.FC = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleSignOut = async () => {
@@ -18,6 +17,11 @@ const AuthButton: React.FC = () => {
 
   const handleNavigateToSettings = () => {
     navigate('/settings');
+    setShowUserMenu(false);
+  };
+
+  const handleNavigateToCheckout = () => {
+    navigate('/checkout');
     setShowUserMenu(false);
   };
 
@@ -70,7 +74,7 @@ const AuthButton: React.FC = () => {
             <p className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
               {user.user_metadata?.name || user.email}
             </p>
-            <p className="text-xs text-slate-400">Signed in</p>
+            <SubscriptionStatus className="text-xs" />
           </div>
         </button>
 
@@ -125,13 +129,16 @@ const AuthButton: React.FC = () => {
                     <p className="text-sm font-medium text-white">
                       {user.user_metadata?.name || user.email}
                     </p>
-                    <p className="text-xs text-slate-400">Free Plan</p>
+                    <SubscriptionStatus className="text-xs" />
                   </div>
                 </div>
               </div>
               
               <div className="p-2">
-                <button className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors">
+                <button
+                  onClick={handleNavigateToCheckout}
+                  className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                >
                   <Crown className="w-4 h-4" />
                   <span>Upgrade to Pro</span>
                 </button>
@@ -164,21 +171,13 @@ const AuthButton: React.FC = () => {
   }
 
   return (
-    <>
-      <button
-        onClick={() => setShowAuthModal(true)}
-        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-105"
-      >
-        <User className="w-4 h-4" />
-        <span>Sign In</span>
-      </button>
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode="signin"
-      />
-    </>
+    <button
+      onClick={() => navigate('/auth/signin')}
+      className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-105"
+    >
+      <User className="w-4 h-4" />
+      <span>Sign In</span>
+    </button>
   );
 };
 

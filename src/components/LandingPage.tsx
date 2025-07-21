@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Zap, ArrowRight, Bot, Sparkles, Settings, MessageSquare, Play } from 'lucide-react';
+import { Database, Zap, ArrowRight, Bot, Sparkles, Settings, MessageSquare, Play, Crown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DBCoachMode } from '../context/GenerationContext';
 import AuthButton from './auth/AuthButton';
 import { useAuth } from '../contexts/AuthContext';
 import useGeneration from '../hooks/useGeneration';
 import { VideoIntroModal } from './VideoIntroModal';
+import { SubscriptionStatus } from './subscription/SubscriptionStatus';
 
 const LandingPage: React.FC = () => {
   const { user } = useAuth();
@@ -307,6 +308,30 @@ const LandingPage: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Upgrade CTA for signed in users */}
+              {user && (
+                <div className="mt-6 p-6 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-purple-600/10 rounded-xl border border-purple-500/30">
+                  <div className="text-center">
+                    <div className="inline-flex items-center space-x-2 px-3 py-1 bg-purple-600/20 text-purple-300 rounded-full text-sm font-medium mb-4">
+                      <Crown className="w-4 h-4" />
+                      <span>Unlock Premium Features</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Upgrade to DB Coach Plus</h3>
+                    <p className="text-slate-300 mb-4">
+                      Get unlimited access to advanced AI generation, data visualization, and premium support
+                    </p>
+                    <Link
+                      to="/checkout"
+                      className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
+                    >
+                      <Crown className="w-5 h-5" />
+                      <span>Upgrade Now</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -314,7 +339,6 @@ const LandingPage: React.FC = () => {
 
       {/* Bottom spacing */}
       <div className="h-12"></div>
-
 
       {/* Video Introduction Modal */}
       <VideoIntroModal
