@@ -291,7 +291,7 @@ const LandingPage: React.FC = () => {
                 {/* Generate button */}
                 <button
                   type="submit"
-                  disabled={!prompt.trim() || isGenerating || !user}
+                  disabled={!prompt.trim() || isGenerating || !user || (isFree && mode === 'dbcoach')}
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   className={`w-full p-4 bg-gradient-to-r ${
@@ -310,7 +310,7 @@ const LandingPage: React.FC = () => {
                   ) : (
                     <>
                       {mode === 'dbcoach' ? <Bot className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
-                      <span>{!user ? 'Sign in to Generate' : mode === 'dbcoach' ? 'Generate with DBCoach Pro' : 'Generate Database Design'}</span>
+                      <span>{!user ? 'Sign in to Generate' : (isFree && mode === 'dbcoach') ? 'Upgrade to Use DBCoach Pro' : mode === 'dbcoach' ? 'Generate with DBCoach Pro' : 'Generate Database Design'}</span>
                       {user && <ArrowRight className="w-5 h-5" />}
                     </>
                   )}
