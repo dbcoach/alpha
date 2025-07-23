@@ -260,12 +260,20 @@ export function BillingSettings() {
             You can manage all of this through the Stripe customer portal.
           </p>
           <button
-            onClick={() => {
-              // In a real implementation, you would create a customer portal session
-              // For now, we'll show a message
-              alert('Customer portal integration would be implemented here');
+            onClick={async () => {
+              try {
+                setLoading(true);
+                const { url } = await stripeService.createCustomerPortalSession();
+                window.location.href = url;
+              } catch (error) {
+                console.error('Failed to open customer portal:', error);
+                alert('Failed to open customer portal. Please try again.');
+              } finally {
+                setLoading(false);
+              }
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Open Customer Portal

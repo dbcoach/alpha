@@ -4,6 +4,7 @@ import { SettingsLayout } from './settings/SettingsLayout';
 import { ProfileSettings } from './settings/ProfileSettings';
 import { AppearanceSettings } from './settings/AppearanceSettings';
 import { ApiKeysSettings } from './settings/ApiKeysSettings';
+import { BillingSettings } from './settings/BillingSettings';
 
 // Placeholder components for other settings pages
 const AIPreferencesSettings = () => (
@@ -42,17 +43,6 @@ const DataPrivacySettings = () => (
   </div>
 );
 
-const BillingSettings = () => (
-  <div className="space-y-6">
-    <div>
-      <h2 className="text-2xl font-bold text-white">Billing</h2>
-      <p className="text-slate-300">Manage your subscription and payments</p>
-    </div>
-    <div className="p-6 rounded-xl bg-slate-800/50 border border-slate-700/50 backdrop-blur">
-      <p className="text-slate-300">Billing settings coming soon...</p>
-    </div>
-  </div>
-);
 
 const AdvancedSettings = () => (
   <div className="space-y-6">
