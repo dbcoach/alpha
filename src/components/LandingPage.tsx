@@ -7,14 +7,16 @@ import { useAuth } from '../contexts/AuthContext';
 import useGeneration from '../hooks/useGeneration';
 import { VideoIntroModal } from './VideoIntroModal';
 import { SubscriptionStatus } from './subscription/SubscriptionStatus';
+import { useSubscription } from '../hooks/useSubscription';
 
 const LandingPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isGenerating } = useGeneration();
+  const { isPlus, isFree } = useSubscription();
   const [prompt, setPrompt] = useState('');
   const [dbType, setDbType] = useState('SQL');
-  const [mode, setMode] = useState<DBCoachMode>('dbcoach');
+  const [mode, setMode] = useState<DBCoachMode>('standard');
   const [isHovered, setIsHovered] = useState(false);
   const [isBrandHovered, setIsBrandHovered] = useState(false);
   const [showInitialGlow, setShowInitialGlow] = useState(true);
@@ -28,6 +30,13 @@ const LandingPage: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Ensure free users can't access DBCoach Pro mode
+  useEffect(() => {
+    if (isFree && mode === 'dbcoach') {
+      setMode('standard');
+    }
+  }, [isFree, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,20 +207,38 @@ const LandingPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
-                      onClick={() => setMode('dbcoach')}
-                      className={`p-4 rounded-xl border transition-all duration-200 ${
-                        mode === 'dbcoach'
+                      onClick={() => {
+                        if (isFree) return; // Prevent mode change for free users
+                        setMode('dbcoach');
+                      }}
+                      disabled={isFree}
+                      className={`p-4 rounded-xl border transition-all duration-200 relative ${
+                        mode === 'dbcoach' && !isFree
                           ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/50 text-purple-300'
+                          : isFree
+                          ? 'bg-slate-800/30 border-slate-700/50 text-slate-500 cursor-not-allowed opacity-60'
                           : 'bg-slate-700/30 border-slate-600/50 text-slate-400 hover:bg-slate-700/50 hover:border-slate-500/50'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
                         <Bot className="w-5 h-5" />
                         <div className="text-left">
-                          <div className="font-semibold">DBCoach Pro</div>
-                          <div className="text-xs opacity-75">Multi-agent analysis</div>
+                          <div className="font-semibold flex items-center space-x-2">
+                            <span>DBCoach Pro</span>
+                            {isFree && <Crown className="w-4 h-4 text-yellow-500" />}
+                          </div>
+                          <div className="text-xs opacity-75">
+                            {isFree ? 'Plus members only' : 'Multi-agent analysis'}
+                          </div>
                         </div>
                       </div>
+                      {isFree && (
+                        <div className="absolute inset-0 bg-slate-900/20 rounded-xl backdrop-blur-sm flex items-center justify-center">
+                          <div className="text-xs font-medium text-slate-400 bg-slate-800/80 px-2 py-1 rounded">
+                            Upgrade Required
+                          </div>
+                        </div>
+                      )}
                     </button>
                     <button
                       type="button"

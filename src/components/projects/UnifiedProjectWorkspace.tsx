@@ -43,6 +43,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { useGeneration } from '../../context/GenerationContext';
+import { useSubscription } from '../../hooks/useSubscription';
 import { DatabaseProject, DatabaseSession, DatabaseQuery, databaseProjectsService } from '../../services/databaseProjectsService';
 import { StreamingErrorBoundary } from '../streaming/StreamingErrorBoundary';
 import { enhancedDBCoachService, GenerationStep, GenerationProgress } from '../../services/enhancedDBCoachService';
@@ -87,6 +88,7 @@ export function UnifiedProjectWorkspace() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { state, startGeneration } = useGeneration();
+  const { isPlus, isFree } = useSubscription();
   
   // Mode and navigation state
   const [mode, setMode] = useState<WorkspaceMode>({
@@ -1287,7 +1289,8 @@ ${tables.map(table => {
                     <button
                       onClick={() => {
                         const newPrompt = `Enhance ${project.database_name}`;
-                        const url = `/projects/${project.id}?prompt=${encodeURIComponent(newPrompt)}&dbType=${project.database_type}&mode=dbcoach`;
+                        const generationMode = isFree ? 'standard' : 'dbcoach';
+                        const url = `/projects/${project.id}?prompt=${encodeURIComponent(newPrompt)}&dbType=${project.database_type}&mode=${generationMode}`;
                         navigate(url);
                         window.location.reload();
                       }}
@@ -1955,7 +1958,8 @@ ${tables.map(table => {
                         <button
                           onClick={() => {
                             const newPrompt = `Enhance ${project?.database_name || 'database'}`;
-                            const url = `/projects/${project?.id}?prompt=${encodeURIComponent(newPrompt)}&dbType=${project?.database_type || 'PostgreSQL'}&mode=dbcoach`;
+                            const generationMode = isFree ? 'standard' : 'dbcoach';
+                            const url = `/projects/${project?.id}?prompt=${encodeURIComponent(newPrompt)}&dbType=${project?.database_type || 'PostgreSQL'}&mode=${generationMode}`;
                             navigate(url);
                             window.location.reload();
                           }}
