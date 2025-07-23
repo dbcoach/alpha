@@ -207,16 +207,9 @@ const LandingPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (isFree) {
-                          // Navigate to checkout for upgrade
-                          navigate('/checkout');
-                          return;
-                        }
-                        setMode('dbcoach');
-                      }}
+                      onClick={() => setMode('dbcoach')}
                       className={`p-4 rounded-xl border transition-all duration-300 relative group overflow-hidden ${
-                        mode === 'dbcoach' && !isFree
+                        mode === 'dbcoach'
                           ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/50 text-purple-300'
                           : isFree
                           ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-400/30 text-purple-200 hover:from-purple-500/15 hover:to-blue-500/15 hover:border-purple-400/50 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/20'
