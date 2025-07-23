@@ -79,8 +79,8 @@ export function BillingSettings() {
     });
   };
 
-  const formatAmount = (amount: number, currency: string) => {
-    return stripeService.formatPrice(amount, currency);
+  const formatAmount = (amount: number, currency: string | null) => {
+    return stripeService.formatPrice(amount, currency || 'usd');
   };
 
   const isActive = stripeService.isSubscriptionActive(subscription);

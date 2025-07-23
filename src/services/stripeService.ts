@@ -19,7 +19,7 @@ export interface StripeOrder {
   payment_intent_id: string;
   amount_subtotal: number;
   amount_total: number;
-  currency: string;
+  currency: string | null;
   payment_status: string;
   order_status: string;
   order_date: string;
@@ -102,9 +102,10 @@ class StripeService {
   }
 
   formatPrice(amount: number, currency: string = 'usd'): string {
+    const safeCurrency = currency || 'usd';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: safeCurrency.toUpperCase(),
     }).format(amount / 100);
   }
 
