@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Shield, Loader } from 'lucide-react';
 
@@ -14,6 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   showFallback = true 
 }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -45,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </p>
             <div className="space-y-3">
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate('/auth/signin')}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all duration-200"
               >
                 Sign In
