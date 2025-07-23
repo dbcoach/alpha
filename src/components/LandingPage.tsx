@@ -208,36 +208,57 @@ const LandingPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (isFree) return; // Prevent mode change for free users
+                        if (isFree) {
+                          // Navigate to checkout for upgrade
+                          navigate('/checkout');
+                          return;
+                        }
                         setMode('dbcoach');
                       }}
-                      disabled={isFree}
-                      className={`p-4 rounded-xl border transition-all duration-200 relative ${
+                      className={`p-4 rounded-xl border transition-all duration-300 relative group overflow-hidden ${
                         mode === 'dbcoach' && !isFree
                           ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/50 text-purple-300'
                           : isFree
-                          ? 'bg-slate-800/30 border-slate-700/50 text-slate-500 cursor-not-allowed opacity-60'
+                          ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-400/30 text-purple-200 hover:from-purple-500/15 hover:to-blue-500/15 hover:border-purple-400/50 cursor-pointer transform hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/20'
                           : 'bg-slate-700/30 border-slate-600/50 text-slate-400 hover:bg-slate-700/50 hover:border-slate-500/50'
                       }`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <Bot className="w-5 h-5" />
+                      <div className="flex items-center space-x-3 relative z-10">
+                        <div className="relative">
+                          <Bot className="w-5 h-5" />
+                          {isFree && (
+                            <div className="absolute -top-1 -right-1">
+                              <Crown className="w-3 h-3 text-yellow-400 animate-pulse" />
+                            </div>
+                          )}
+                        </div>
                         <div className="text-left">
                           <div className="font-semibold flex items-center space-x-2">
                             <span>DBCoach Pro</span>
-                            {isFree && <Crown className="w-4 h-4 text-yellow-500" />}
+                            {isFree && (
+                              <div className="px-2 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 rounded-full">
+                                <span className="text-xs font-medium text-yellow-300">PLUS</span>
+                              </div>
+                            )}
                           </div>
                           <div className="text-xs opacity-75">
-                            {isFree ? 'Plus members only' : 'Multi-agent analysis'}
+                            {isFree ? 'Click to unlock premium features' : 'Multi-agent analysis'}
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Animated background for free users */}
                       {isFree && (
-                        <div className="absolute inset-0 bg-slate-900/20 rounded-xl backdrop-blur-sm flex items-center justify-center">
-                          <div className="text-xs font-medium text-slate-400 bg-slate-800/80 px-2 py-1 rounded">
-                            Upgrade Required
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 rounded-bl-xl opacity-60">
+                            <div className="absolute top-1 right-1">
+                              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                            </div>
                           </div>
-                        </div>
+                          {/* Subtle shimmer effect */}
+                          <div className="absolute inset-0 -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+                        </>
                       )}
                     </button>
                     <button
