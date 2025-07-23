@@ -264,19 +264,46 @@ const LandingPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setMode('standard')}
-                      className={`p-4 rounded-xl border transition-all duration-200 ${
+                      className={`p-4 rounded-xl border transition-all duration-300 relative group overflow-hidden ${
                         mode === 'standard'
-                          ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                          : 'bg-slate-700/30 border-slate-600/50 text-slate-400 hover:bg-slate-700/50 hover:border-slate-500/50'
+                          ? 'bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border-emerald-400/40 text-emerald-200 shadow-lg shadow-emerald-500/10'
+                          : 'bg-gradient-to-r from-slate-700/20 to-slate-600/20 border-slate-500/40 text-slate-300 hover:from-slate-600/30 hover:to-slate-500/30 hover:border-slate-400/50 hover:text-slate-200 transform hover:scale-[1.01] hover:shadow-md hover:shadow-slate-500/10'
                       }`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <Sparkles className="w-5 h-5" />
+                      <div className="flex items-center space-x-3 relative z-10">
+                        <div className="relative">
+                          <Sparkles className={`w-5 h-5 transition-all duration-300 ${
+                            mode === 'standard' ? 'text-emerald-300' : 'text-slate-400 group-hover:text-slate-300'
+                          }`} />
+                          {mode === 'standard' && (
+                            <div className="absolute inset-0">
+                              <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
+                            </div>
+                          )}
+                        </div>
                         <div className="text-left">
-                          <div className="font-semibold">Standard</div>
-                          <div className="text-xs opacity-75">Quick generation</div>
+                          <div className="font-semibold flex items-center space-x-2">
+                            <span>Standard</span>
+                            <div className="px-2 py-0.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/30 rounded-full">
+                              <span className="text-xs font-medium text-emerald-300">FREE</span>
+                            </div>
+                          </div>
+                          <div className="text-xs opacity-75">
+                            Fast & reliable generation
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Subtle animated background effects */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/3 via-teal-500/3 to-emerald-500/3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      {/* Active state glow */}
+                      {mode === 'standard' && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-emerald-500/5 animate-pulse"></div>
+                      )}
+                      
+                      {/* Elegant shimmer on hover */}
+                      <div className="absolute inset-0 -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/3 to-transparent"></div>
                     </button>
                   </div>
                 </div>
