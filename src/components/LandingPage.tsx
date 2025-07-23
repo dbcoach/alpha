@@ -31,16 +31,16 @@ const LandingPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Ensure free users can't access DBCoach Pro mode
-  useEffect(() => {
-    if (isFree && mode === 'dbcoach') {
-      setMode('standard');
-    }
-  }, [isFree, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() && user) {
+      // Check if free user is trying to use DBCoach Pro
+      if (isFree && mode === 'dbcoach') {
+        navigate('/checkout');
+        return;
+      }
+      
       // Navigate to streaming page with parameters for AI agent generation
       const params = new URLSearchParams({
         prompt: prompt.trim(),
