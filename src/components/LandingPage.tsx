@@ -241,13 +241,13 @@ const LandingPage: React.FC = () => {
                       </div>
                       
                       {/* Animated background for free users */}
-                      {isFree && (
+                      {true && (
                         <>
                           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-br from-yellow-400/30 to-orange-400/30 rounded-bl-xl">
+                          <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-br from-yellow-400/50 to-orange-400/50 rounded-bl-xl z-20 border border-yellow-400/40">
                             <div className="absolute top-1 right-1">
-                              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
-                              <div className="absolute inset-0 w-2 h-2 bg-yellow-300 rounded-full"></div>
+                              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping z-30"></div>
+                              <div className="absolute inset-0 w-2 h-2 bg-yellow-300 rounded-full z-25"></div>
                             </div>
                           </div>
                           {/* Subtle shimmer effect */}
