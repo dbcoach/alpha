@@ -709,7 +709,15 @@ export function EnhancedStreamingInterface({
           confidence: 0.8 + (i * 0.04) // Increasing confidence
         };
         
-        setAiReasoning(prev => [...prev, reasoning]);
+        setAiReasoning(prev => {
+          // Check if this reasoning already exists to prevent duplicates
+          const exists = prev.some(existing => existing.id === reasoning.id);
+          if (exists) {
+            console.warn(`⚠️ Duplicate reasoning prevented: ${reasoning.id}`);
+            return prev;
+          }
+          return [...prev, reasoning];
+        });
         
         // Reduced delay between reasoning steps for faster transitions
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -736,7 +744,15 @@ export function EnhancedStreamingInterface({
         isExpanded: false,
         confidence: 0.95
       };
-      setAiReasoning(prev => [...prev, finalReasoningStep]);
+      setAiReasoning(prev => {
+        // Check if this reasoning already exists to prevent duplicates
+        const exists = prev.some(existing => existing.id === finalReasoningStep.id);
+        if (exists) {
+          console.warn(`⚠️ Duplicate reasoning prevented: ${finalReasoningStep.id}`);
+          return prev;
+        }
+        return [...prev, finalReasoningStep];
+      });
       
       // Use the revolutionary service to generate content with timeout fallback
       console.time(`🔥 AI Generation for ${task.title}`);
@@ -762,7 +778,15 @@ export function EnhancedStreamingInterface({
               isExpanded: false,
               confidence: progress.confidence
             };
-            setAiReasoning(prev => [...prev, progressReasoning]);
+            setAiReasoning(prev => {
+              // Check if this reasoning already exists to prevent duplicates
+              const exists = prev.some(existing => existing.id === progressReasoning.id);
+              if (exists) {
+                console.warn(`⚠️ Duplicate reasoning prevented: ${progressReasoning.id}`);
+                return prev;
+              }
+              return [...prev, progressReasoning];
+            });
             
             // Log timing for debugging
             console.log(`📊 Progress update for ${task.title}: ${progress.step} (${progress.confidence * 100}% confidence)`);
@@ -798,7 +822,7 @@ export function EnhancedStreamingInterface({
       if (targetStep) {
         // Add completion reasoning
         const completionReasoning: AIReasoning = {
-          id: `completion_${task.id}`,
+          id: `completion_${task.id}_${Date.now()}`,
           taskId: task.id,
           agent: task.agent,
           step: 'Complete',
@@ -807,7 +831,15 @@ export function EnhancedStreamingInterface({
           isExpanded: false,
           confidence: targetStep.confidence
         };
-        setAiReasoning(prev => [...prev, completionReasoning]);
+        setAiReasoning(prev => {
+          // Check if this reasoning already exists to prevent duplicates
+          const exists = prev.some(existing => existing.id === completionReasoning.id);
+          if (exists) {
+            console.warn(`⚠️ Duplicate reasoning prevented: ${completionReasoning.id}`);
+            return prev;
+          }
+          return [...prev, completionReasoning];
+        });
         
         console.log(`✅ Generated ${targetStep.type} content with ${targetStep.content.length} characters`);
         
@@ -823,7 +855,7 @@ export function EnhancedStreamingInterface({
       
       // Add error reasoning
       const errorReasoning: AIReasoning = {
-        id: `error_${task.id}`,
+        id: `error_${task.id}_${Date.now()}`,
         taskId: task.id,
         agent: task.agent,
         step: 'Fallback',
@@ -832,7 +864,15 @@ export function EnhancedStreamingInterface({
         isExpanded: true,
         confidence: 0.6
       };
-      setAiReasoning(prev => [...prev, errorReasoning]);
+      setAiReasoning(prev => {
+        // Check if this reasoning already exists to prevent duplicates
+        const exists = prev.some(existing => existing.id === errorReasoning.id);
+        if (exists) {
+          console.warn(`⚠️ Duplicate reasoning prevented: ${errorReasoning.id}`);
+          return prev;
+        }
+        return [...prev, errorReasoning];
+      });
       
       // Fallback to enhanced static content that's at least contextual
       return generateEnhancedStaticContent(task, prompt, dbType);
