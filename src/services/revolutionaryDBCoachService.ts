@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toolService, ToolService } from './toolService';
 import { contextService, ContextService, DatabaseContext, WorkspaceContext, UserContext, ConversationContext } from './contextService';
+import { databaseSpecificQAService, QAValidationResult } from './databaseSpecificQAService';
+import { DatabaseTypePromptEngine } from './databaseTypePrompts';
 
 export interface RevolutionaryGenerationStep {
   type: 'analysis' | 'design' | 'validation' | 'implementation';
@@ -42,6 +44,8 @@ interface AgentCapabilities {
   allowedTools: string[];
   safetyLevel: 'READ_ONLY' | 'SAFE_MODIFY' | 'DESTRUCTIVE_ALLOWED';
   maxContextTokens: number;
+  databaseSpecialization?: 'SQL' | 'NoSQL' | 'VectorDB';
+  expertiseLevel: 'junior' | 'senior' | 'expert' | 'architect';
 }
 
 class RevolutionaryDBCoachService {
@@ -329,7 +333,8 @@ You are operating in **Chat Mode**. You are a knowledgeable and friendly AI data
       const validationStep = await this.executeRevolutionaryValidationPhase(
         designStep,
         implementationStep,
-        userContext
+        userContext,
+        dbType
       );
       steps.push(validationStep);
 
@@ -560,10 +565,24 @@ Format as a comprehensive commercial-grade implementation guide.`;
   private async executeRevolutionaryValidationPhase(
     designStep: RevolutionaryGenerationStep,
     implementationStep: RevolutionaryGenerationStep,
-    userContext: UserContext
+    userContext: UserContext,
+    dbType: string
   ): Promise<RevolutionaryGenerationStep> {
     
+    // Use database-specific QA validation
+    const dbTypeMapped = dbType.toLowerCase() === 'vectordb' ? 'VectorDB' : 
+                         dbType.toLowerCase() === 'nosql' ? 'NoSQL' : 'SQL';
+    
+    const qaResult = await databaseSpecificQAService.validateAllAspects(
+      designStep.content + '\n\n' + implementationStep.content,
+      designStep.content,
+      dbTypeMapped as 'SQL' | 'NoSQL' | 'VectorDB'
+    );
+    
     const validationPrompt = `Execute revolutionary quality assurance with commercial-grade standards:
+
+### Database-Specific QA Results:
+${JSON.stringify(qaResult, null, 2)}
 
 ### Design to Validate:
 ${designStep.content}
@@ -709,6 +728,83 @@ VALIDATION CRITERIA:
       console.error('Revolutionary DBCoach connection test failed:', error);
       return false;
     }
+  }
+
+  // Database-specific agent specialization methods
+  private createSpecializedAgent(
+    baseMode: AgentMode,
+    dbType: 'SQL' | 'NoSQL' | 'VectorDB',
+    expertiseLevel: 'junior' | 'senior' | 'expert' | 'architect' = 'expert'
+  ): AgentCapabilities {
+    const baseCapabilities = this.AGENT_CAPABILITIES[baseMode];
+    const paradigm = DatabaseTypePromptEngine.getParadigm(dbType);
+    
+    const specializedPrompt = `${baseCapabilities.systemPrompt}
+
+### DATABASE PARADIGM SPECIALIZATION: ${dbType}
+**Philosophy**: ${paradigm.philosophy}
+**Design Principles**: ${paradigm.designPrinciples.join(', ')}
+**Query Paradigms**: ${paradigm.queryParadigms.join(', ')}
+**Scaling Strategies**: ${paradigm.scalingStrategies.join(', ')}
+**Use Cases**: ${paradigm.useCases.join(', ')}
+
+### EXPERTISE LEVEL: ${expertiseLevel.toUpperCase()}
+You operate with ${expertiseLevel}-level expertise in ${dbType} systems, providing ${this.getExpertiseLevelDescription(expertiseLevel)} guidance.
+
+### SPECIALIZED VALIDATION CRITERIA:
+${this.getSpecializedValidationCriteria(dbType)}
+`;
+
+    return {
+      ...baseCapabilities,
+      systemPrompt: specializedPrompt,
+      databaseSpecialization: dbType,
+      expertiseLevel
+    };
+  }
+
+  private getExpertiseLevelDescription(level: string): string {
+    const descriptions = {
+      'junior': 'foundational and learning-oriented',
+      'senior': 'experienced and best-practice focused',
+      'expert': 'advanced and optimization-oriented',
+      'architect': 'enterprise-grade and strategic'
+    };
+    return descriptions[level as keyof typeof descriptions] || 'expert';
+  }
+
+  private getSpecializedValidationCriteria(dbType: 'SQL' | 'NoSQL' | 'VectorDB'): string {
+    const criteria = {
+      'SQL': `
+- ACID compliance and transaction integrity
+- Normalization and referential integrity
+- Index efficiency and query optimization
+- Schema evolution and migration safety
+- Performance under concurrent load`,
+      'NoSQL': `
+- Document structure efficiency and access patterns
+- Sharding strategy and distribution
+- Eventual consistency model validation
+- Index strategy for compound queries
+- Horizontal scaling considerations`,
+      'VectorDB': `
+- Embedding quality and model appropriateness
+- Index algorithm optimization (HNSW/IVF/LSH)
+- Hybrid search capability (vector + metadata)
+- Memory efficiency and quantization
+- AI pipeline integration readiness`
+    };
+    return criteria[dbType];
+  }
+
+  // Method to get specialized QA agent for database type
+  getSpecializedQAAgent(dbType: 'SQL' | 'NoSQL' | 'VectorDB'): AgentCapabilities {
+    return this.createSpecializedAgent(AgentMode.ANALYST, dbType, 'architect');
+  }
+
+  // Method to get specialized implementation agent for database type
+  getSpecializedImplementationAgent(dbType: 'SQL' | 'NoSQL' | 'VectorDB'): AgentCapabilities {
+    return this.createSpecializedAgent(AgentMode.DEVELOPER, dbType, 'expert');
   }
 }
 
