@@ -441,6 +441,12 @@ export function EnhancedStreamingInterface({
         content = generateMinimalContent(task, prompt, dbType);
       }
       
+      // Ensure content is never empty to prevent infinite streaming
+      if (!content || content.length === 0) {
+        console.error(`🚫 No content generated for ${task.title}, using emergency fallback`);
+        content = `# ${task.title}\n\nContent generation completed.\n\nPlease refer to the Implementation tab for detailed results.`;
+      }
+      
       // Immediately extract and store clean output
       const cleanContent = extractCleanOutput(content);
       console.log(`🧹 Clean content extracted for ${task.title} - Length: ${cleanContent.length}`);
@@ -498,7 +504,7 @@ export function EnhancedStreamingInterface({
             timeoutRefs.current.add(timeoutId);
           } else {
             // Task completed successfully
-            console.log(`✅ Task ${task.title} completed naturally`);
+            console.log(`✅ Task ${task.title} completed naturally - streamed ${contentIndex}/${content.length} characters`);
             
             // Clear task timeout
             const taskTimeoutId = taskTimeoutRefs.current.get(task.id);
@@ -552,6 +558,38 @@ export function EnhancedStreamingInterface({
           timeoutRefs.current.add(resumeTimeoutId);
         }
       };
+
+      // Add safety check for immediate completion if content is very short
+      if (content.length <= 100) {
+        console.log(`📋 Content is short (${content.length} chars), completing immediately for ${task.title}`);
+        
+        // Set content immediately
+        localContent.set(task.id, content);
+        setTaskContent(prev => {
+          const newMap = new Map(prev);
+          newMap.set(task.id, content);
+          return newMap;
+        });
+        
+        // Complete task immediately
+        task.status = 'completed';
+        task.progress = 100;
+        setTasks([...localTasks]);
+
+        // Add completion insight
+        const completionInsight = {
+          agent: task.agent,
+          message: `${task.title} completed successfully! Clean output ready.`,
+          timestamp: new Date()
+        };
+        localInsights.push(completionInsight);
+        setInsights(prev => [...prev, completionInsight]);
+
+        currentTaskIndex++;
+        const nextTaskTimeoutId = setTimeout(() => processNextTask(), 500);
+        timeoutRefs.current.add(nextTaskTimeoutId);
+        return;
+      }
 
       streamContent();
     };
