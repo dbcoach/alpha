@@ -36,6 +36,27 @@ export interface StreamingTask {
   timeout?: NodeJS.Timeout;
 }
 
+export interface FinalTaskResult {
+  taskId: string;
+  title: string;
+  agent: string;
+  content: string;
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+}
+
+export interface SessionCompletionResult {
+  sessionId: string;
+  finalResults: Map<string, FinalTaskResult>;
+  summary: {
+    totalTasks: number;
+    completedTasks: number;
+    failedTasks: number;
+    totalDuration: number;
+  };
+}
+
 export interface StreamChunk {
   type: 'task_start' | 'content' | 'task_complete' | 'session_complete' | 'error';
   taskId: string;
@@ -143,13 +164,39 @@ class StreamingService extends EventEmitter {
   }
 
   /**
-   * Complete the session
+   * Complete the session and prepare final results
    */
-  completeSession(): void {
-    this.emit('session_completed', {
-      sessionId: this.currentSession,
-      tasks: Array.from(this.tasks.values())
-    });
+  completeSession(): SessionCompletionResult {
+    // Aggregate all completed task content into final results
+    const finalResults = new Map<string, FinalTaskResult>();
+    
+    for (const [taskId, task] of this.tasks.entries()) {
+      if (task.status === 'completed') {
+        finalResults.set(taskId, {
+          taskId,
+          title: task.title,
+          agent: task.agent,
+          content: task.content.trim(), // Clean up streaming artifacts
+          startTime: task.startTime!,
+          endTime: task.endTime!,
+          duration: task.endTime!.getTime() - task.startTime!.getTime()
+        });
+      }
+    }
+    
+    const completionResult: SessionCompletionResult = {
+      sessionId: this.currentSession!,
+      finalResults,
+      summary: {
+        totalTasks: this.tasks.size,
+        completedTasks: Array.from(this.tasks.values()).filter(t => t.status === 'completed').length,
+        failedTasks: Array.from(this.tasks.values()).filter(t => t.status === 'error').length,
+        totalDuration: this.calculateTotalDuration()
+      }
+    };
+    
+    this.emit('session_completed', completionResult);
+    return completionResult;
   }
 
   /**
@@ -198,11 +245,62 @@ class StreamingService extends EventEmitter {
   }
 
   /**
-   * Get content for a task
+   * Get content for a task (streaming - real-time access)
    */
   getTaskContent(taskId: string): string {
     const task = this.tasks.get(taskId);
     return task ? task.content : '';
+  }
+
+  /**
+   * Get final results (only for completed tasks)
+   */
+  getFinalResults(): Map<string, FinalTaskResult> {
+    const finalResults = new Map<string, FinalTaskResult>();
+    
+    for (const [taskId, task] of this.tasks.entries()) {
+      if (task.status === 'completed') {
+        finalResults.set(taskId, {
+          taskId,
+          title: task.title,
+          agent: task.agent,
+          content: this.cleanContent(task.content),
+          startTime: task.startTime!,
+          endTime: task.endTime!,
+          duration: task.endTime!.getTime() - task.startTime!.getTime()
+        });
+      }
+    }
+    
+    return finalResults;
+  }
+
+  /**
+   * Clean streaming artifacts from content
+   */
+  private cleanContent(content: string): string {
+    return content
+      .trim()
+      .replace(/\n{3,}/g, '\n\n') // Remove excessive newlines
+      .replace(/^[\s\n]+|[\s\n]+$/g, '') // Trim whitespace
+      .replace(/Generating.*?\.\.\./gi, '') // Remove progress messages
+      .replace(/^\s*-+\s*$/gm, '') // Remove separator lines
+      .trim();
+  }
+
+  /**
+   * Calculate total session duration
+   */
+  private calculateTotalDuration(): number {
+    const completedTasks = Array.from(this.tasks.values())
+      .filter(task => task.status === 'completed' && task.startTime && task.endTime);
+    
+    if (completedTasks.length === 0) return 0;
+    
+    const earliest = Math.min(...completedTasks.map(task => task.startTime!.getTime()));
+    const latest = Math.max(...completedTasks.map(task => task.endTime!.getTime()));
+    
+    return latest - earliest;
   }
 
   /**

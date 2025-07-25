@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from '../context/GenerationContext';
-import { streamingService } from '../services/streamingService';
+import { streamingService, type SessionCompletionResult, type FinalTaskResult } from '../services/streamingService';
 import { enhancedDBCoachService, GenerationProgress as DBCoachProgress } from '../services/enhancedDBCoachService';
 
 export interface UseStreamingGenerationOptions {
@@ -100,17 +100,24 @@ export function useStreamingGeneration(options: UseStreamingGenerationOptions = 
         onTaskComplete?.(taskId, step.content);
       }
 
-      // Complete session
-      streamingService.completeSession();
+      // Complete session and get properly formatted final results
+      const completionResult: SessionCompletionResult = streamingService.completeSession();
+      
+      // Convert final results to the expected format for display
+      const finalResults = new Map<string, string>();
+      for (const [taskId, result] of completionResult.finalResults.entries()) {
+        finalResults.set(taskId, result.content);
+      }
 
-      // Collect results
-      const results = new Map<string, string>();
-      steps.forEach(step => {
-        const taskId = taskMappingRef.current.get(step.type) || `${sessionId}_${step.type}`;
-        results.set(taskId, streamingService.getTaskContent(taskId));
+      // Notify completion with clean, final results (no streaming artifacts)
+      onStreamingComplete?.(finalResults);
+      
+      console.log('🎉 Streaming completed:', {
+        sessionId: completionResult.sessionId,
+        completed: completionResult.summary.completedTasks,
+        total: completionResult.summary.totalTasks,
+        duration: `${Math.round(completionResult.summary.totalDuration / 1000)}s`
       });
-
-      onStreamingComplete?.(results);
       
       return steps;
 
