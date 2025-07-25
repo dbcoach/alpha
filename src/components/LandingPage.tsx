@@ -402,24 +402,26 @@ const LandingPage: React.FC = () => {
       />
 
       {/* Custom CSS for flowing border animation */}
-      <style jsx>{`
-        @keyframes flowing-border {
-          0% {
-            background-position: 0% 0%;
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes flowing-border {
+            0% {
+              background-position: 0% 0%;
+            }
+            50% {
+              background-position: 100% 100%;
+            }
+            100% {
+              background-position: 0% 0%;
+            }
           }
-          50% {
-            background-position: 100% 100%;
+          
+          .animate-flowing-border {
+            background-size: 400% 400%;
+            animation: flowing-border 3s ease-in-out;
           }
-          100% {
-            background-position: 0% 0%;
-          }
-        }
-        
-        .animate-flowing-border {
-          background-size: 400% 400%;
-          animation: flowing-border 3s ease-in-out;
-        }
-      `}</style>
+        `
+      }} />
     </div>
   );
 };
