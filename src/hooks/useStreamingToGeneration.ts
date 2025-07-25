@@ -98,6 +98,16 @@ export function useStreamingToGeneration(options: UseStreamingToGenerationOption
     onTransitionStart?.();
 
     try {
+      // Ensure agents are cleaned up before completing
+      const { agentCleanupService } = await import('../services/agentCleanupService');
+      
+      console.log('🧹 Performing final agent cleanup before transition...');
+      const cleanupStats = agentCleanupService.forceCleanupStuckAgents();
+      
+      if (cleanupStats.stuckTasks > 0) {
+        console.log(`🧹 Cleaned up ${cleanupStats.stuckTasks} stuck agents before transition`);
+      }
+
       // Get the completion result from streaming service
       const completionResult: SessionCompletionResult = streamingService.completeSession();
       
@@ -111,6 +121,11 @@ export function useStreamingToGeneration(options: UseStreamingToGenerationOption
         }
       );
 
+      // Ensure we have valid results
+      if (!finalGenerationResult.phases || finalGenerationResult.phases.length === 0) {
+        throw new Error('No generation phases found in streaming results');
+      }
+
       // Update state with final results
       setState(prev => ({
         ...prev,
@@ -123,6 +138,7 @@ export function useStreamingToGeneration(options: UseStreamingToGenerationOption
       console.log('✅ Streaming to Generation transition completed:', {
         sessionId: finalGenerationResult.sessionId,
         phases: finalGenerationResult.phases.length,
+        cleanedAgents: cleanupStats.cleanedTasks,
         duration: `${Math.round(finalGenerationResult.metadata.totalDuration / 1000)}s`
       });
 
@@ -131,6 +147,8 @@ export function useStreamingToGeneration(options: UseStreamingToGenerationOption
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete streaming transition';
+      
+      console.error('❌ Streaming transition error:', error);
       
       setState(prev => ({
         ...prev,

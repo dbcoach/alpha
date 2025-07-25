@@ -72,18 +72,47 @@ export const StreamingGenerationWrapper: React.FC<StreamingGenerationWrapperProp
     }
   }, [sessionId, isActive, reset]);
 
-  // Auto-complete streaming when results are available
+  // Auto-complete streaming when results are available and agents are healthy
   useEffect(() => {
     if (isStreaming && streamingResults.size > 0) {
-      // Check if streaming appears complete (no new content for a while)
-      const timer = setTimeout(() => {
-        if (isStreaming && !isTransitioning) {
-          console.log('🔄 Auto-completing streaming transition...');
-          completeStreaming(streamingResults).catch(console.error);
+      let timeoutId: NodeJS.Timeout;
+      
+      const checkAgentsAndComplete = async () => {
+        try {
+          // Import agent cleanup service dynamically to avoid circular imports
+          const { agentCleanupService } = await import('../../services/agentCleanupService');
+          
+          // Perform health check to ensure agents are ready
+          const healthChecks = await agentCleanupService.performHealthCheck();
+          const activeAgents = healthChecks.filter(check => 
+            check.status === 'healthy' || check.status === 'stuck' || check.status === 'orphaned'
+          );
+          
+          // Only proceed if no agents are actively processing or if they've been cleaned up
+          if (activeAgents.length === 0 || activeAgents.every(agent => agent.status !== 'healthy')) {
+            if (isStreaming && !isTransitioning) {
+              console.log('🔄 Auto-completing streaming transition with clean agents...');
+              completeStreaming(streamingResults).catch(console.error);
+            }
+          } else {
+            // Wait a bit longer if agents are still healthy and working
+            console.log(`⏳ Waiting for ${activeAgents.length} agents to complete...`);
+            timeoutId = setTimeout(checkAgentsAndComplete, 3000);
+          }
+        } catch (error) {
+          console.warn('⚠️ Agent health check failed, proceeding with completion:', error);
+          if (isStreaming && !isTransitioning) {
+            completeStreaming(streamingResults).catch(console.error);
+          }
         }
-      }, 2000); // Wait 2 seconds after last update
+      };
 
-      return () => clearTimeout(timer);
+      // Initial delay before checking agents
+      timeoutId = setTimeout(checkAgentsAndComplete, 2000);
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
   }, [streamingResults, isStreaming, isTransitioning, completeStreaming]);
 
@@ -117,11 +146,16 @@ export const StreamingGenerationWrapper: React.FC<StreamingGenerationWrapperProp
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
             <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              Preparing Generation Results
+              Finalizing Generation
             </h3>
-            <p className="text-blue-700">
-              Processing streaming content and formatting for display...
-            </p>
+            <div className="space-y-2 text-sm text-blue-700">
+              <p>✅ Cleaning up active agents</p>
+              <p>🔄 Processing streaming content</p>
+              <p>📝 Formatting results for display</p>
+            </div>
+            <div className="mt-4 text-xs text-blue-600">
+              This ensures all agents have completed and content is properly formatted
+            </div>
           </div>
         </div>
       </div>
@@ -145,15 +179,20 @@ export const StreamingGenerationWrapper: React.FC<StreamingGenerationWrapperProp
         {/* Show streaming component if provided */}
         {streamingComponent || (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="animate-pulse flex space-x-1 mr-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="animate-pulse flex space-x-1 mr-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Generating Database...
+                </h3>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Generating Database...
-              </h3>
+              <div className="text-sm text-gray-600">
+                {streamingResults.size} active agents
+              </div>
             </div>
             
             {/* Show streaming content preview */}
@@ -161,16 +200,29 @@ export const StreamingGenerationWrapper: React.FC<StreamingGenerationWrapperProp
               <div className="space-y-2">
                 {Array.from(streamingResults.entries()).map(([taskId, content]) => (
                   <div key={taskId} className="bg-white border rounded p-3">
-                    <div className="text-sm font-medium text-gray-700 mb-1">
-                      {taskId}
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-sm font-medium text-gray-700">
+                        {taskId.replace(/([A-Z])/g, ' $1').trim()}
+                      </div>
+                      <div className="flex items-center text-xs text-green-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>
+                        Active
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {content.substring(0, 100)}...
+                    <div className="text-xs text-gray-500">
+                      {content.length > 150 ? 
+                        content.substring(0, 150).replace(/[^\s]*$/, '') + '...' : 
+                        content
+                      }
                     </div>
                   </div>
                 ))}
               </div>
             )}
+            
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              Agents will auto-complete when processing is finished
+            </div>
           </div>
         )}
       </div>

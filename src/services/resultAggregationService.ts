@@ -110,7 +110,7 @@ class ResultAggregationService {
    */
   private formatPhaseTitle(title: string): string {
     // Remove agent suffixes
-    let cleanTitle = title.replace(/\s+(Agent|Analyst|Designer|Specialist)$/i, '');
+    const cleanTitle = title.replace(/\s+(Agent|Analyst|Designer|Specialist)$/i, '');
     
     // Standardize common titles
     const titleMap: Record<string, string> = {
@@ -127,25 +127,40 @@ class ResultAggregationService {
    * Clean content for final display (remove streaming artifacts)
    */
   private cleanContentForDisplay(content: string): string {
-    return content
+    let cleanedContent = content
       // Remove progress indicators
       .replace(/Generating[^.]*\.\.\./gi, '')
       .replace(/Processing[^.]*\.\.\./gi, '')
       .replace(/Analyzing[^.]*\.\.\./gi, '')
       
       // Remove streaming markers
-      .replace(/^[\\s]*[-=]{3,}[\\s]*$/gm, '')
-      .replace(/^[\\s]*\[STREAMING\][\\s]*/gm, '')
-      .replace(/^[\\s]*\[PROGRESS\][\\s]*/gm, '')
+      .replace(/^[\s]*[-=]{3,}[\s]*$/gm, '')
+      .replace(/^[\s]*\[STREAMING\][\s]*/gm, '')
+      .replace(/^[\s]*\[PROGRESS\][\s]*/gm, '')
       
       // Clean up formatting
-      .replace(/\\n{3,}/g, '\\n\\n') // Max 2 consecutive newlines
-      .replace(/^[\\s\\n]+|[\\s\\n]+$/g, '') // Trim
-      .replace(/([.!?])\\n([A-Z])/g, '$1\\n\\n$2') // Proper paragraph spacing
+      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+      .replace(/^[\s\n]+|[\s\n]+$/g, '') // Trim
+      .replace(/([.!?])\n([A-Z])/g, '$1\n\n$2'); // Proper paragraph spacing
+
+    // Preserve code blocks and structured content
+    const hasCodeBlocks = cleanedContent.includes('```');
+    const hasMarkdownHeaders = cleanedContent.includes('##');
+    
+    // Only remove incomplete sentences if content doesn't have structured elements
+    if (!hasCodeBlocks && !hasMarkdownHeaders) {
+      // More conservative approach - only remove if it's clearly incomplete
+      const lines = cleanedContent.split('\n');
+      const lastLine = lines[lines.length - 1]?.trim();
       
-      // Remove incomplete sentences that might be streaming artifacts
-      .replace(/\\n[^.!?]*$/, '') // Remove last incomplete sentence if any
-      .trim();
+      // Only remove last line if it's very short and doesn't end with punctuation or colon
+      if (lastLine && lastLine.length < 30 && !lastLine.match(/[.!?:]$/) && !lastLine.includes(':')) {
+        lines.pop();
+        cleanedContent = lines.join('\n');
+      }
+    }
+    
+    return cleanedContent.trim();
   }
 
   /**
@@ -154,14 +169,25 @@ class ResultAggregationService {
   private calculateContentConfidence(content: string): number {
     let confidence = 1.0;
     
-    // Penalize for obvious incompleteness
-    if (content.includes('...')) confidence *= 0.8;
-    if (content.length < 100) confidence *= 0.7;
-    if (!content.trim().endsWith('.') && !content.includes('```')) confidence *= 0.9;
+    // More lenient confidence calculation
+    // Penalize for obvious incompleteness but be less aggressive
+    if (content.includes('...') && content.split('...').length > 2) confidence *= 0.9; // Only penalize if multiple ellipses
+    if (content.length < 50) confidence *= 0.8; // Only penalize very short content
     
-    // Reward for code blocks and structured content
+    // Don't penalize for code blocks or structured content without ending punctuation
+    const hasStructuredContent = content.includes('```') || content.includes('##') || content.includes('CREATE TABLE');
+    if (!hasStructuredContent && !content.trim().endsWith('.') && !content.trim().endsWith(':')) {
+      confidence *= 0.95; // Small penalty only
+    }
+    
+    // Reward for quality indicators
     if (content.includes('```')) confidence *= 1.1;
     if (content.includes('##') || content.includes('###')) confidence *= 1.05;
+    if (content.includes('CREATE TABLE') || content.includes('def ') || content.includes('class ')) confidence *= 1.1;
+    
+    // Reward for proper sentence structure
+    const sentences = content.split(/[.!?]/).filter(s => s.trim().length > 10);
+    if (sentences.length >= 3) confidence *= 1.05;
     
     return Math.min(confidence, 1.0);
   }

@@ -18,7 +18,8 @@
       "Bash(grep:*)",
       "Bash(node:*)",
       "Bash(touch:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(npm test)"
     ],
     "deny": []
   }
