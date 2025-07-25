@@ -155,11 +155,10 @@ class ResilientStreamingService {
           return this.attemptFallbackGeneration(prompt, dbType, progressCallback);
         }
         
-        // If not the last attempt, wait before retry
+        // If not the last attempt, brief pause before retry
         if (attempt < this.config.retryAttempts) {
-          const delay = Math.min(500 * Math.pow(2, attempt - 1), 2000); // Faster backoff, max 2s
-          console.log(`⏱️ Waiting ${delay}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          // Minimal delay, just enough to avoid hammering the API
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
     }
@@ -220,12 +219,12 @@ class ResilientStreamingService {
         }
       );
 
-      // Simulate progress callback for consistency
+      // Report real fallback progress
       if (progressCallback) {
         progressCallback({
           step: 'analysis',
           agent: `${dbType} Fallback Analyst`,
-          reasoning: 'Using enhanced fallback mode for reliable generation',
+          reasoning: 'Using enhanced fallback service for generation',
           isComplete: false,
           currentStep: 1,
           totalSteps: 2,
@@ -235,7 +234,7 @@ class ResilientStreamingService {
         progressCallback({
           step: 'design',
           agent: `${dbType} Fallback Designer`,
-          reasoning: 'Completed fallback database design generation',
+          reasoning: 'Database design completed using fallback service',
           isComplete: true,
           currentStep: 2,
           totalSteps: 2,

@@ -40,12 +40,11 @@ export function StreamingInterface({
 }: StreamingInterfaceProps) {
   const [tasks, setTasks] = useState<StreamingTask[]>([]);
   const [activeTask, setActiveTask] = useState<StreamingTask | null>(null);
-  const [totalProgress, setTotalProgress] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [streamingSpeed, setStreamingSpeed] = useState(40);
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [taskContent, setTaskContent] = useState<Map<string, string>>(new Map());
-  const [insights, setInsights] = useState<Array<{ agent: string; message: string; timestamp: Date }>>([]);
+  const [sessionStatus, setSessionStatus] = useState<'idle' | 'generating' | 'completed' | 'error'>('idle');
   
   const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const cursorRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
