@@ -45,7 +45,13 @@ export function useStreamingGeneration(options: UseStreamingGenerationOptions = 
       streamingService.addTaskContent(taskId, `${progress.reasoning}\n\n`);
       onTaskProgress?.(taskId, progress.reasoning);
     }
-  }, [enableStreaming, onTaskStart, onTaskProgress]);
+
+    // Complete task if this is a completion step
+    if (progress.isComplete || progress.currentStep === progress.totalSteps || progress.step === 'validation') {
+      streamingService.completeTask(taskId);
+      onTaskComplete?.(taskId, streamingService.getTaskContent(taskId));
+    }
+  }, [enableStreaming, onTaskStart, onTaskProgress, onTaskComplete]);
 
   // Get user-friendly task titles
   const getTaskTitle = (step: string): string => {

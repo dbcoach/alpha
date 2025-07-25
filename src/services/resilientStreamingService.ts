@@ -1,6 +1,8 @@
 // Resilient Streaming Service with Advanced Error Handling and Recovery
 import { revolutionaryDBCoachService } from './revolutionaryDBCoachService';
 import { enhancedDBCoachService } from './enhancedDBCoachService';
+import { streamingService } from './streamingService';
+import { agentCleanupService } from './agentCleanupService';
 
 export interface StreamingConfig {
   timeout: number;
@@ -53,6 +55,9 @@ class ResilientStreamingService {
       this.config = { ...this.config, ...config };
     }
     this.initializeDiagnostics();
+    
+    // Start agent cleanup service
+    agentCleanupService.startCleanupService();
   }
 
   private async initializeDiagnostics(): Promise<void> {
@@ -122,12 +127,22 @@ class ResilientStreamingService {
       };
     }
 
+    // Initialize streaming session for tracking
+    const sessionId = `resilient_${Date.now()}`;
+    streamingService.initializeSession(sessionId);
+
     // Attempt primary service with retries
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
+      let taskId: string | null = null;
+      
       try {
         this.diagnostics.performanceMetrics.retryCount = attempt - 1;
         
         console.log(`🚀 Streaming attempt ${attempt}/${this.config.retryAttempts} for ${dbType} database`);
+        
+        // Start tracking this attempt
+        taskId = `${sessionId}_attempt_${attempt}`;
+        streamingService.startTask(taskId, `${dbType} Generation Attempt ${attempt}`, `${dbType} Generator`);
         
         const result = await this.attemptGeneration(
           prompt,
@@ -135,6 +150,11 @@ class ResilientStreamingService {
           progressCallback,
           attempt
         );
+
+        // Mark attempt as successful
+        if (taskId) {
+          streamingService.completeTask(taskId);
+        }
 
         this.diagnostics.performanceMetrics.responseTime = Date.now() - startTime;
         
@@ -148,6 +168,11 @@ class ResilientStreamingService {
       } catch (error) {
         console.warn(`❌ Attempt ${attempt} failed:`, error);
         this.diagnostics.lastError = error instanceof Error ? error.message : String(error);
+        
+        // Mark attempt as failed
+        if (taskId) {
+          streamingService.handleError(taskId, error instanceof Error ? error.message : String(error));
+        }
         
         // If this is the last attempt and fallback is enabled, try fallback
         if (attempt === this.config.retryAttempts && this.config.fallbackMode) {
@@ -205,10 +230,15 @@ class ResilientStreamingService {
     progressCallback?: (progress: any) => void
   ): Promise<StreamingResult> {
     
+    const fallbackTaskId = `fallback_${Date.now()}`;
+    
     try {
       this.diagnostics.performanceMetrics.fallbackTriggered = true;
       
       console.log('🛡️ Using enhanced fallback service...');
+      
+      // Track fallback attempt
+      streamingService.startTask(fallbackTaskId, `${dbType} Fallback Generation`, `${dbType} Fallback Service`);
       
       // Use enhanced service as fallback
       const fallbackResult = await enhancedDBCoachService.generateDatabaseDesign(
@@ -242,6 +272,9 @@ class ResilientStreamingService {
         });
       }
 
+      // Mark fallback as successful
+      streamingService.completeTask(fallbackTaskId);
+
       return {
         success: true,
         data: fallbackResult,
@@ -251,6 +284,9 @@ class ResilientStreamingService {
 
     } catch (fallbackError) {
       console.error('❌ Fallback generation also failed:', fallbackError);
+      
+      // Mark fallback as failed
+      streamingService.handleError(fallbackTaskId, fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
       
       return {
         success: false,
