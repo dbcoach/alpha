@@ -523,27 +523,35 @@ IMPORTANT: Ensure 100% SQL syntax validity, revolutionary context awareness, and
     userContext: UserContext
   ): Promise<RevolutionaryGenerationStep> {
     
-    const implementationPrompt = `Generate a revolutionary implementation package with commercial-grade completeness:
-
-### Design Context:
-${designStep.content}
-
-### Requirements Context:
-${analysisStep.content}
-
-### User Preferences:
-${JSON.stringify(userContext, null, 2)}
-
-Provide revolutionary implementation with:
-1. **Version-Controlled Migration Scripts**: Complete Alembic/Flyway scripts
-2. **Revolutionary Sample Data**: Context-aware realistic data generation
-3. **Commercial API Integration**: Production-ready endpoints with authentication
-4. **Advanced Monitoring**: Health checks, performance metrics, alerting
-5. **Comprehensive Security**: Encryption, access control, audit trails
-6. **Deployment Automation**: Docker, Kubernetes, CI/CD scripts
-7. **Documentation**: API docs, setup guides, troubleshooting
-
-Format as a comprehensive commercial-grade implementation guide.`;
+    // Get database type from user context or design step
+    const dbType = this.extractDatabaseType(userContext, designStep);
+    const dbTypeFormatted = this.formatDatabaseType(dbType);
+    
+    // Use database type-specific prompts for implementation
+    const implementationPrompt = DatabaseTypePromptEngine.buildContextualPrompt(
+      dbTypeFormatted,
+      'implementationPrompt',
+      {
+        analysis_results: designStep.content,
+        user_request: analysisStep.content,
+        user_context: JSON.stringify(userContext, null, 2),
+        database_name: this.extractDatabaseName(userContext),
+        generate_migration_scripts: this.generateMigrationScriptsForType(dbTypeFormatted),
+        generate_sample_data: this.generateSampleDataForType(dbTypeFormatted),
+        generate_monitoring_queries: this.generateMonitoringForType(dbTypeFormatted),
+        generate_collection_setup: this.generateCollectionSetupForType(dbTypeFormatted),
+        generate_index_creation: this.generateIndexCreationForType(dbTypeFormatted),
+        generate_sample_data_insertion: this.generateSampleDataInsertionForType(dbTypeFormatted),
+        generate_query_tests: this.generateQueryTestsForType(dbTypeFormatted),
+        generate_complete_implementation_with_error_handling: this.generateCompleteImplementationForType(dbTypeFormatted),
+        generate_robust_connection_setup: this.generateConnectionSetupForType(dbTypeFormatted),
+        generate_detailed_schema_with_validation: this.generateSchemaValidationForType(dbTypeFormatted),
+        generate_efficient_data_ingestion: this.generateDataIngestionForType(dbTypeFormatted),
+        generate_optimized_search_functions: this.generateSearchFunctionsForType(dbTypeFormatted),
+        generate_monitoring_and_maintenance_tools: this.generateMaintenanceToolsForType(dbTypeFormatted),
+        generate_comprehensive_examples: this.generateExamplesForType(dbTypeFormatted)
+      }
+    );
 
     const response = await this.retryWithBackoff(async () => {
       const result = await this.model.generateContent(implementationPrompt);
@@ -552,13 +560,13 @@ Format as a comprehensive commercial-grade implementation guide.`;
 
     return {
       type: 'implementation',
-      title: 'Revolutionary Implementation Package',
+      title: `${dbTypeFormatted} Implementation Package`,
       content: response,
-      reasoning: 'Commercial-grade implementation with version control, monitoring, security, and deployment automation',
-      agent: 'Revolutionary Implementation Specialist',
+      reasoning: `Database type-specific ${dbTypeFormatted} implementation with production-ready code, proper indexing, error handling, and best practices for ${dbTypeFormatted} systems`,
+      agent: `${dbTypeFormatted} Implementation Specialist`,
       status: 'completed',
-      confidence: 0.90,
-      safetyChecks: ['deployment_validation', 'security_audit', 'performance_baseline']
+      confidence: 0.95,
+      safetyChecks: ['database_type_validation', 'syntax_verification', 'performance_optimization', 'security_implementation']
     };
   }
 
@@ -805,6 +813,387 @@ ${this.getSpecializedValidationCriteria(dbType)}
   // Method to get specialized implementation agent for database type
   getSpecializedImplementationAgent(dbType: 'SQL' | 'NoSQL' | 'VectorDB'): AgentCapabilities {
     return this.createSpecializedAgent(AgentMode.DEVELOPER, dbType, 'expert');
+  }
+
+  // Helper methods for database type-specific implementation generation
+  private extractDatabaseType(userContext: UserContext, designStep: RevolutionaryGenerationStep): string {
+    // Try to extract from user context first
+    if (userContext.preferences?.database_type) {
+      return userContext.preferences.database_type;
+    }
+    
+    // Extract from design step content
+    const content = designStep.content.toLowerCase();
+    if (content.includes('mongodb') || content.includes('document') || content.includes('nosql')) {
+      return 'NoSQL';
+    }
+    if (content.includes('vector') || content.includes('embedding') || content.includes('similarity')) {
+      return 'VectorDB';
+    }
+    
+    // Default to SQL
+    return 'SQL';
+  }
+
+  private formatDatabaseType(dbType: string): string {
+    switch (dbType.toLowerCase()) {
+      case 'nosql':
+      case 'mongodb':
+      case 'document':
+        return 'NoSQL';
+      case 'vectordb':
+      case 'vector':
+      case 'weaviate':
+        return 'VectorDB';
+      default:
+        return 'SQL';
+    }
+  }
+
+  private extractDatabaseName(userContext: UserContext): string {
+    return userContext.preferences?.database_name || 
+           userContext.project?.name || 
+           'generated_database';
+  }
+
+  private generateMigrationScriptsForType(dbType: string): string {
+    switch (dbType) {
+      case 'NoSQL':
+        return 'MongoDB migration scripts with collection creation and index setup';
+      case 'VectorDB':
+        return 'Vector database schema setup with proper indexing configuration';
+      default:
+        return 'SQL migration scripts with proper table creation, constraints, and indexes';
+    }
+  }
+
+  private generateSampleDataForType(dbType: string): string {
+    switch (dbType) {
+      case 'NoSQL':
+        return 'Realistic JSON documents with proper structure and relationships';
+      case 'VectorDB':
+        return 'Sample vectors with metadata and proper embedding structure';
+      default:
+        return 'Realistic SQL INSERT statements respecting all constraints';
+    }
+  }
+
+  private generateMonitoringForType(dbType: string): string {
+    switch (dbType) {
+      case 'NoSQL':
+        return 'MongoDB performance monitoring queries and health checks';
+      case 'VectorDB':
+        return 'Vector database performance metrics and similarity search monitoring';
+      default:
+        return 'SQL performance monitoring queries and index usage analysis';
+    }
+  }
+
+  private generateCollectionSetupForType(dbType: string): string {
+    if (dbType === 'NoSQL') {
+      return `
+    # Create collections with proper validation
+    try:
+        # Collection setup with schema validation
+        collections = {
+            '{collection_name}': {
+                'validator': {'$jsonSchema': {schema_definition}},
+                'validationLevel': 'strict'
+            }
+        }
+        
+        for collection_name, config in collections.items():
+            if collection_name not in db.list_collection_names():
+                db.create_collection(collection_name, **config)
+                logger.info(f"Created collection: {collection_name}")
+            else:
+                logger.info(f"Collection already exists: {collection_name}")
+    except Exception as e:
+        logger.error(f"Collection setup failed: {e}")
+        raise`;
+    }
+    return 'SQL table creation handled by migration scripts';
+  }
+
+  private generateIndexCreationForType(dbType: string): string {
+    if (dbType === 'NoSQL') {
+      return `
+    # Apply MongoDB indexes based on access patterns
+    try:
+        indexes = [
+            ('collection_name', [('field1', ASCENDING), ('field2', DESCENDING)]),
+            ('collection_name', [('text_field', 'text')]),  # Text search index
+        ]
+        
+        for collection_name, index_spec in indexes:
+            collection = db[collection_name]
+            if isinstance(index_spec[0], tuple):
+                collection.create_index(index_spec)
+            else:
+                collection.create_index([(index_spec[0], index_spec[1])])
+            logger.info(f"Created index on {collection_name}: {index_spec}")
+            
+    except Exception as e:
+        logger.error(f"Index creation failed: {e}")
+        raise`;
+    }
+    return 'SQL indexes handled by migration scripts';
+  }
+
+  private generateSampleDataInsertionForType(dbType: string): string {
+    if (dbType === 'NoSQL') {
+      return `
+    # Insert sample documents
+    try:
+        sample_data = {
+            'collection_name': [
+                {
+                    'field1': 'value1',
+                    'field2': 123,
+                    'nested_object': {'sub_field': 'value'},
+                    'created_at': datetime.utcnow()
+                }
+            ]
+        }
+        
+        for collection_name, documents in sample_data.items():
+            collection = db[collection_name]
+            result = collection.insert_many(documents)
+            logger.info(f"Inserted {len(result.inserted_ids)} documents into {collection_name}")
+            
+    except Exception as e:
+        logger.error(f"Sample data insertion failed: {e}")
+        raise`;
+    }
+    return 'SQL sample data handled by migration scripts';
+  }
+
+  private generateQueryTestsForType(dbType: string): string {
+    if (dbType === 'NoSQL') {
+      return `
+    # Test main query patterns
+    try:
+        # Example queries based on design patterns
+        collection = db['main_collection']
+        
+        # Query 1: Find by specific criteria
+        result1 = collection.find({'field1': 'value1'}).limit(10)
+        logger.info(f"Query 1 results: {list(result1)}")
+        
+        # Query 2: Aggregation pipeline
+        pipeline = [
+            {'$match': {'status': 'active'}},
+            {'$group': {'_id': '$category', 'count': {'$sum': 1}}}
+        ]
+        result2 = list(collection.aggregate(pipeline))
+        logger.info(f"Aggregation results: {result2}")
+        
+    except Exception as e:
+        logger.error(f"Query testing failed: {e}")`;
+    }
+    return 'SQL query testing handled separately';
+  }
+
+  private generateCompleteImplementationForType(dbType: string): string {
+    switch (dbType) {
+      case 'VectorDB':
+        return `
+# Complete Weaviate Vector Database Implementation
+import weaviate
+import weaviate.classes as wvc
+from sentence_transformers import SentenceTransformer
+from typing import List, Dict, Any, Optional
+
+# Production-ready vector database setup with comprehensive error handling`;
+      case 'NoSQL':
+        return `
+# Complete MongoDB Implementation  
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from datetime import datetime
+import logging
+
+# Production-ready MongoDB setup with comprehensive error handling`;
+      default:
+        return `
+# Complete SQL Database Implementation
+import psycopg2
+from sqlalchemy import create_engine, text
+import logging
+
+# Production-ready SQL database setup with comprehensive error handling`;
+    }
+  }
+
+  private generateConnectionSetupForType(dbType: string): string {
+    switch (dbType) {
+      case 'VectorDB':
+        return `
+def connect_to_weaviate():
+    """Connect to Weaviate with proper error handling"""
+    try:
+        client = weaviate.connect_to_local()
+        return client
+    except Exception as e:
+        logger.error(f"Weaviate connection failed: {e}")
+        raise`;
+      case 'NoSQL':
+        return `
+def connect_to_mongodb():
+    """Connect to MongoDB with proper error handling"""
+    try:
+        client = MongoClient(MONGO_URI)
+        client.admin.command('ismaster')
+        return client
+    except Exception as e:
+        logger.error(f"MongoDB connection failed: {e}")
+        raise`;
+      default:
+        return `
+def connect_to_database():
+    """Connect to SQL database with proper error handling"""
+    try:
+        engine = create_engine(DATABASE_URL)
+        return engine
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        raise`;
+    }
+  }
+
+  private generateSchemaValidationForType(dbType: string): string {
+    if (dbType === 'VectorDB') {
+      return `
+def create_vector_schema(client):
+    """Create vector collection schema"""
+    try:
+        collection = client.collections.create(
+            name="documents",
+            vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_transformers(),
+            generative_config=wvc.config.Configure.Generative.openai()
+        )
+        return collection
+    except Exception as e:
+        logger.error(f"Schema creation failed: {e}")
+        raise`;
+    }
+    return 'Schema validation handled by migration scripts';
+  }
+
+  private generateDataIngestionForType(dbType: string): string {
+    if (dbType === 'VectorDB') {
+      return `
+def ingest_documents(collection, documents):
+    """Efficiently ingest documents with vectorization"""
+    try:
+        with collection.batch.dynamic() as batch:
+            for doc in documents:
+                batch.add_object(
+                    properties=doc,
+                    vector=doc.get('vector')  # If pre-computed
+                )
+        logger.info(f"Ingested {len(documents)} documents")
+    except Exception as e:
+        logger.error(f"Data ingestion failed: {e}")
+        raise`;
+    }
+    return 'Data ingestion handled by standard insert operations';
+  }
+
+  private generateSearchFunctionsForType(dbType: string): string {
+    if (dbType === 'VectorDB') {
+      return `
+def semantic_search(collection, query, limit=10):
+    """Perform semantic similarity search"""
+    try:
+        response = collection.query.near_text(
+            query=query,
+            limit=limit,
+            return_metadata=wvc.query.MetadataQuery(score=True)
+        )
+        return response.objects
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        raise`;
+    }
+    return 'Search functions handled by standard database queries';
+  }
+
+  private generateMaintenanceToolsForType(dbType: string): string {
+    switch (dbType) {
+      case 'VectorDB':
+        return `
+def get_collection_stats(collection):
+    """Get vector collection statistics"""
+    try:
+        return collection.aggregate.over_all(total_count=True)
+    except Exception as e:
+        logger.error(f"Stats retrieval failed: {e}")
+        return None`;
+      case 'NoSQL':
+        return `
+def get_collection_stats(db):
+    """Get MongoDB collection statistics"""
+    try:
+        stats = {}
+        for collection_name in db.list_collection_names():
+            stats[collection_name] = db[collection_name].count_documents({})
+        return stats
+    except Exception as e:
+        logger.error(f"Stats retrieval failed: {e}")
+        return None`;
+      default:
+        return `
+def get_table_stats(engine):
+    """Get SQL table statistics"""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT table_name FROM information_schema.tables"))
+            return [row[0] for row in result]
+    except Exception as e:
+        logger.error(f"Stats retrieval failed: {e}")
+        return None`;
+    }
+  }
+
+  private generateExamplesForType(dbType: string): string {
+    switch (dbType) {
+      case 'VectorDB':
+        return `
+# Example usage for vector database
+if __name__ == "__main__":
+    client = connect_to_weaviate()
+    collection = create_vector_schema(client)
+    
+    # Sample documents
+    documents = [
+        {"title": "Example Document", "content": "This is example content"}
+    ]
+    
+    ingest_documents(collection, documents)
+    results = semantic_search(collection, "find similar content")
+    print(f"Found {len(results)} similar documents")`;
+      case 'NoSQL':
+        return `
+# Example usage for MongoDB
+if __name__ == "__main__":
+    client = connect_to_mongodb()
+    db = client[DATABASE_NAME]
+    
+    # Test basic operations
+    collection = db['test_collection']
+    result = collection.insert_one({"test": "document"})
+    print(f"Inserted document with ID: {result.inserted_id}")`;
+      default:
+        return `
+# Example usage for SQL database
+if __name__ == "__main__":
+    engine = connect_to_database()
+    
+    # Test connection
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        print(f"Database connection successful: {result.fetchone()}")`;
+    }
   }
 }
 
