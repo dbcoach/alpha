@@ -34,9 +34,54 @@ class StreamlinedDBCoachService {
         temperature: 0.7,
         topP: 0.8,
         topK: 40,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 16384, // Increased for VectorDB implementations
       }
     });
+  }
+
+  /**
+   * Validate that AI response is complete and not truncated
+   */
+  private validateResponseCompleteness(content: string, phase: string): { isComplete: boolean; issues: string[] } {
+    const issues: string[] = [];
+    
+    if (phase === 'implementation') {
+      // Check for incomplete code blocks
+      const codeBlocks = content.match(/```[\s\S]*?```/g) || [];
+      const openBlocks = (content.match(/```/g) || []).length;
+      
+      if (openBlocks % 2 !== 0) {
+        issues.push('Incomplete code block detected');
+      }
+      
+      // Check for truncated Python functions
+      if (content.includes('def ') && !content.trim().endsWith('}') && !content.trim().endsWith('```')) {
+        const lastLine = content.trim().split('\n').pop() || '';
+        if (!lastLine.includes('return') && !lastLine.includes('}') && !lastLine.includes('```')) {
+          issues.push('Implementation appears to be cut off mid-function');
+        }
+      }
+      
+      // Check for common truncation patterns
+      const truncationPatterns = [
+        /It seems there was a misunderstanding/i,
+        /Let me provide/i,
+        /I'll need to/i,
+        /However,?$/i
+      ];
+      
+      for (const pattern of truncationPatterns) {
+        if (pattern.test(content)) {
+          issues.push('Response contains truncation indicator phrases');
+          break;
+        }
+      }
+    }
+    
+    return {
+      isComplete: issues.length === 0,
+      issues
+    };
   }
 
   /**
@@ -82,11 +127,31 @@ class StreamlinedDBCoachService {
       // Single AI execution - no repeats
       console.log(`🚀 Executing ${request.dbType} ${request.phase} generation`);
       const result = await this.model.generateContent(`${systemPrompt}\n\n${userPrompt}`);
-      const content = await result.response.text();
+      let content = await result.response.text();
+
+      // Validate response completeness
+      const validation = this.validateResponseCompleteness(content, request.phase);
+      if (!validation.isComplete) {
+        console.warn(`⚠️ Response validation issues detected:`, validation.issues);
+        
+        // For implementation phase, try to get continuation if truncated
+        if (request.phase === 'implementation' && validation.issues.some(issue => issue.includes('cut off'))) {
+          console.log('🔄 Attempting to get continuation of truncated response...');
+          try {
+            const continuationPrompt = `Please continue the previous implementation from where it was cut off. The previous response ended with:\n\n${content.slice(-500)}\n\nPlease provide the missing code and complete the implementation.`;
+            const continuationResult = await this.model.generateContent(continuationPrompt);
+            const continuationContent = await continuationResult.response.text();
+            content += '\n\n' + continuationContent;
+            console.log('✅ Successfully retrieved continuation');
+          } catch (error) {
+            console.error('❌ Failed to get continuation:', error);
+          }
+        }
+      }
 
       const generationResult: StreamlinedGenerationResult = {
         content,
-        confidence: this.calculateConfidence(content, request.dbType),
+        confidence: this.calculateConfidence(content, request.dbType) * (validation.isComplete ? 1 : 0.8), // Reduce confidence for incomplete responses
         agent: `${request.dbType} ${request.phase.charAt(0).toUpperCase() + request.phase.slice(1)} Agent`,
         dbType: request.dbType,
         phase: request.phase

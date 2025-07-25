@@ -37,7 +37,7 @@ class EnhancedDBCoachService {
         temperature: 0.7,
         topP: 0.8,
         topK: 40,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 16384, // Increased for VectorDB implementations
       }
     });
   }
@@ -325,7 +325,20 @@ Focus on: Semantic search optimization, embedding quality, index performance, an
   private async retryWithBackoff(operation: () => Promise<string>, maxRetries = 3): Promise<string> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await operation();
+        const result = await operation();
+        
+        // Validate response completeness for design phase (most likely to be truncated)
+        if (result.length > 10000) { // Only check long responses
+          const validation = this.validateResponseCompleteness(result);
+          if (!validation.isComplete) {
+            console.warn(`⚠️ Response validation issues detected (attempt ${attempt}):`, validation.issues);
+            if (attempt < maxRetries) {
+              throw new Error('Response appears truncated, retrying...');
+            }
+          }
+        }
+        
+        return result;
       } catch (error) {
         if (attempt === maxRetries) throw error;
         
@@ -334,6 +347,43 @@ Focus on: Semantic search optimization, embedding quality, index performance, an
       }
     }
     throw new Error('Max retries exceeded');
+  }
+
+  private validateResponseCompleteness(content: string): { isComplete: boolean; issues: string[] } {
+    const issues: string[] = [];
+    
+    // Check for incomplete code blocks
+    const codeBlocks = (content.match(/```/g) || []).length;
+    if (codeBlocks % 2 !== 0) {
+      issues.push('Incomplete code block detected');
+    }
+    
+    // Check for common truncation patterns
+    const truncationPatterns = [
+      /It seems there was a misunderstanding/i,
+      /Let me provide/i,
+      /I'll need to/i,
+      /However,?$/i,
+      /Unfortunately,?$/i
+    ];
+    
+    for (const pattern of truncationPatterns) {
+      if (pattern.test(content)) {
+        issues.push('Response contains truncation indicator phrases');
+        break;
+      }
+    }
+    
+    // Check if content ends abruptly (no proper conclusion)
+    const lastSentence = content.trim().split('.').pop() || '';
+    if (lastSentence.length < 10 && !content.includes('```') && content.length > 5000) {
+      issues.push('Response may be cut off abruptly');
+    }
+    
+    return {
+      isComplete: issues.length === 0,
+      issues
+    };
   }
 }
 

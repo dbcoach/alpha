@@ -25,7 +25,12 @@ class GeminiService {
     }
     
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite-preview-06-17' });
+    this.model = this.genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash-lite-preview-06-17',
+      generationConfig: {
+        maxOutputTokens: 16384 // Increased for comprehensive implementations
+      }
+    });
   }
 
   private async retryWithBackoff<T>(

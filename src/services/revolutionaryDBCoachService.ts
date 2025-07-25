@@ -235,6 +235,7 @@ You are operating in **Chat Mode**. You are a knowledgeable and friendly AI data
         temperature: 0.1,
         topP: 0.8,
         topK: 40,
+        maxOutputTokens: 16384, // Increased for comprehensive implementations
       }
     });
 
