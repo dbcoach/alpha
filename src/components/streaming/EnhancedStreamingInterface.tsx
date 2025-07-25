@@ -658,9 +658,10 @@ export function EnhancedStreamingInterface({
       ];
       
       // Stream reasoning steps to left panel
+      const timestamp = Date.now();
       for (let i = 0; i < reasoningSteps.length; i++) {
         const reasoning: AIReasoning = {
-          id: `reasoning_${task.id}_${i}`,
+          id: `reasoning_${task.id}_${timestamp}_${i}`,
           taskId: task.id,
           agent: task.agent,
           step: `Step ${i + 1}`,
@@ -688,7 +689,7 @@ export function EnhancedStreamingInterface({
       
       // Add AI reasoning step
       const finalReasoningStep: AIReasoning = {
-        id: `reasoning_${task.id}_final`,
+        id: `reasoning_${task.id}_${timestamp}_final`,
         taskId: task.id,
         agent: task.agent,
         step: 'AI Generation',
